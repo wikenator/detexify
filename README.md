@@ -1,6 +1,8 @@
 # DeTeXify
 DeTeXify removes LaTeX and TeX tags from an input string and returns a computer-evaluatable string.
 
+![Live Demo Here](https://www.wireandkloudready.com/wkrcp/detexifier.php "Live Demo")
+
 ## Usage
 As of now, no command line options for DeTeX exist. Options and flags must be passed with the input. Debugging can also be activated by changing "debug = 0;" to "debug = 1;" near the top of detex.pl.
 
