@@ -4,7 +4,9 @@
 # Creation Date: November 1, 2012
 # Description: Front end script to detex.
 
-use lib ('.');
+# edit this path ONLY if you need to move and call detex from another directory#
+use lib('.');
+###############################################################################
 
 use strict;
 use warnings;

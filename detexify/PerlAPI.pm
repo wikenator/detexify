@@ -7,6 +7,10 @@ use IPC::Open2;
 use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
+# edit this variable ONLY if you need to call detex from another directory ####
+our $detexify_path = '.';
+###############################################################################
+
 @ISA = qw(Exporter);
 @EXPORT = ();
 @EXPORT_OK = qw(preClean detex expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
@@ -55,7 +59,8 @@ sub preClean {
 ### Detexify ##################################################################
 sub detex {
         my $prob = shift;
-        my $detexPath = './detex.pl';
+	our $detexify_path;
+        my $detexPath = $detexify_path . '/detex.pl';
 
         my $detexID = open2(\*pipeRead, \*pipeWrite, "$detexPath");
 
@@ -74,7 +79,8 @@ sub detex {
 ### Clean String of Parentheses ###############################################
 sub cleanParens {
 	my $expr = shift;
-	my $cleanPath = './clean_parens.pl';
+	our $detexify_path;
+	my $cleanPath = $detexify_path . '/clean_parens.pl';
 
 	my $cleanID = open2(\*pipeRead, \*pipeWrite, "$cleanPath");
 
