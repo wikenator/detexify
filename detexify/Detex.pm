@@ -130,7 +130,11 @@ sub detex {
 #	$latexExpr =~ s/\)/}/g;			# replace ) with }
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
 	$latexExpr =~ s/\\?pi/#pi/g;		# escape pi tag
-	$latexExpr =~ s/\\?log/#log/g;		# escape log tag
+
+	if ($latexExpr =~ /log[^A-Za-z]/) {
+		$latexExpr =~ s/\\?log/#log/g;	# escape log tag
+	}
+
 	$latexExpr =~ s/\\?ln/#ln/g;		# escape ln tag
 	$latexExpr =~ s/\\emptyset/#emptyset/g;	# escape emptyset tag
 	$latexExpr =~ s/\\operatorname\{(.*?)\}/$1/g;	# remove operatorname
