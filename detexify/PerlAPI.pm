@@ -57,7 +57,7 @@ sub detex {
         my $prob = shift;
         my $detexPath = './detex.pl';
 
-        my $detexID = open2 (\*pipeRead, \*pipeWrite, "$detexPath");
+        my $detexID = open2(\*pipeRead, \*pipeWrite, "$detexPath");
 
         print pipeWrite "$prob\n";
         close (pipeWrite);
@@ -151,7 +151,7 @@ sub injectAsterixes {
 	my $debug = shift;
 
 	# put hash tag before trig functions to avoid losing the function
-	if ($expr =~ /[^#]a?[sct][aieos][cnst]h?/) {
+	if ($expr =~ /[^#]a?[sct][aieos][cnst]h?[^A-Za-z]/) {
 		$expr =~ s/([^#])(a?)([sct])([aieos])([cnst])(h?)/$1#$2$3$4$5$6/g;
 	}
 
