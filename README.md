@@ -3,6 +3,9 @@ DeTeXify removes LaTeX and TeX tags from an input string and returns a computer-
 
 [Live Demo Here](https://www.wireandkloudready.com/wkrcp/detexifier.php "Live Demo")
 
+## Configuration
+In order to call the main detex.pl file from locations other than the root directory of this repository, you may need to update the `use lib` statements in `detex.pl` and `clean_parens.pl`, as well as the `detexify_path` variable in `PerlAPI.pm`.
+
 ## Usage
 As of now, no command line options for DeTeX exist. Options and flags must be passed with the input. Debugging can also be activated by changing "debug = 0;" to "debug = 1;" near the top of detex.pl.
 
