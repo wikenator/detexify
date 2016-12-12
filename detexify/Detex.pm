@@ -33,7 +33,7 @@ my @latexSplit = qw({ } [ ] ^);
 my @latexTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot);
+	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
 }
 
 ### Detex: remove latex tags from expressions #################################
@@ -354,9 +354,10 @@ sub detexify {
 				$right_delim = ')';
 
 				# make sure substring is not denominator
-				if ($latexExpr->[$i+2] and 
+				if ((($latexExpr->[$i+2] and 
 				($latexExpr->[$i+2] eq '(') and
-				($latexExpr->[$i+1] ne '/')) {
+				($latexExpr->[$i+1] ne '/'))) or
+				($latexExpr->[$i+1] eq '(')) {
 					$delim_count = 1;
 					$i += 2;
 
