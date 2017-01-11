@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use lib ('./detexify/detexify');
+use lib ('./detexify');
 
 use strict;
 use warnings;
