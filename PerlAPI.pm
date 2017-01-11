@@ -18,13 +18,14 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our @latexFunc;
 {
 	no warnings 'qw';
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #ln #log);
 }
 
 ### Standard Data Cleaning for All Procedures #################################
 sub preClean {
 	my $expr = shift;
 
+	$expr =~ s/\\[\,\!\s]/ /g;	# remove tex space (escaped , ! whitespace)
 	$expr =~ s/\\\[/\$\$/g;		# remove escaped [
 	$expr =~ s/\\\]/\$\$/g;		# remove escaped ]
 	$expr =~ s/\\\{/\(/g;		# remove escaped {
@@ -35,13 +36,16 @@ sub preClean {
 	$expr =~ s/\*\*/\^/g;		# replace python ** with sage ^
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
-	$expr =~ s/^\s*(.*?)\s*$/$1/;	# remove leading and trailing spaces
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
 	$expr =~ s/\\left//g;		# remove \left tags
 	$expr =~ s/\\right//g;		# remove \right tags
 	$expr =~ s/\\break//g;		# remove break tags
+	$expr =~ s/\\q?quad//g;		# remove qquad, quad tags
 	$expr =~ s/\\lbrack/\(/g;	# replace lbrack with (
 	$expr =~ s/\\rbrack/\)/g;	# replace rbrack with )
+	$expr =~ s/\\[lc]?dots/.../g;	# replace \dots, \ldots, \cdots with ...
+	$expr =~ s/\s+/ /g;		# replace multiple spaces with 1 space
+	$expr =~ s/^\s*(.*?)\s*$/$1/;	# remove leading and trailing spaces
 
 	# remove these tags to prevent XSS attacks
 	$expr =~ s/\\immediate//g;
@@ -55,9 +59,14 @@ sub preClean {
 ### Detexify ##################################################################
 sub detex {
         my $prob = shift;
-        my $detexPath = './detex.pl';
+	my $match = shift;
+	my $debug = shift;
+	$match = 'f' if not defined $match;
+	$debug = 0 if not defined $debug;
+        my $detexPath = './detexify/detexify/detex.pl';
+	my $cmd = "$detexPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
 
-        my $detexID = open2(\*pipeRead, \*pipeWrite, "$detexPath");
+	my $detexID = open2(\*pipeRead, \*pipeWrite, "$cmd");
 
         print pipeWrite "$prob\n";
         close (pipeWrite);
@@ -74,9 +83,12 @@ sub detex {
 ### Clean String of Parentheses ###############################################
 sub cleanParens {
 	my $expr = shift;
-	my $cleanPath = './clean_parens.pl';
+	my $debug = shift;
+	$debug = 0 if not defined $debug;
+	my $cleanPath = './detexify/detexify/clean_parens.pl';
+	my $cmd = "$cleanPath" . ($debug ? " -d" : "");
 
-	my $cleanID = open2(\*pipeRead, \*pipeWrite, "$cleanPath");
+	my $cleanID = open2(\*pipeRead, \*pipeWrite, "$cmd");
 
 	print pipeWrite "$expr\n";
 	close(pipeWrite);
@@ -158,6 +170,8 @@ sub injectAsterixes {
 	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;  # a(x) -> a*(x)
 	# run second time for deeper nested expressions
 	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;  # a(x) -> a*(x)
+	# fix for subscript
+	$expr =~ s/_\*/_/g;
 	$expr =~ s/([\(\{])(.*?)([\)\}])\s?(#?[\w]+)/$1$2$3*$4/g;  # (x)a -> (x)*a OR {x}a -> {x}*a
 	$expr =~ s/([\)\}])([\(\{])/$1*$2/g;                       # )( -> )*(
 
@@ -192,7 +206,7 @@ sub injectAsterixes {
 	$expr =~ s/#p\*i([\+\-\*\/]?)/pi$1/g;
 	$expr =~ s/pi\*$/pi/;
 	# fix split for log/ln
-	$expr =~ s/#(l)\*([on])\*?(g?)\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4(/g;
+	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
 	# fix split for ln
 #       $detexExpr =~ s/#l\*n\*?(\()/ln$1/g; 
 	# fix split for (arc/hyperbolic) trig 
@@ -318,7 +332,7 @@ sub latexplosion {
 	my $debug = shift;
 	my @fragment;
 
-	my $subExpr = [split(/([{}\(\)\[\]\^\*\/])/, $expr)];
+	my $subExpr = [split(/([{}\(\)\[\]\^\*\/_])/, $expr)];
 
         # splice backslashes together with corresponding latex tag
 	for my $i (0 .. (scalar @$subExpr)-1) {

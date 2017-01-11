@@ -11,7 +11,7 @@ package Detex;
 
 use strict;
 use warnings;
-use PerlAPI qw(preClean unbalancedCharacter injectAsterixes latexplosion cleanParens);
+use PerlAPI qw(preClean unbalancedCharacter injectAsterixes latexplosion);
 use Exporter;
 use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
@@ -28,7 +28,7 @@ our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
 my $maxIter = 100;
-my @latexSplit = qw({ } [ ] ^);
+my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
 {
@@ -189,8 +189,8 @@ sub detex {
 		### tag: KEEP{}
 		#$detexExpr =~ s/{/(/g;	# replace curly braces with parentheses
 		#$detexExpr =~ s/}/)/g;	# replace curly braces with parentheses
-		if ($detexExpr =~ /[^^]\{.*?\}/) {
-			$detexExpr =~ s/([^^])\{(.*?)\}/$1($2)/g;
+		if ($detexExpr =~ /[^_^]\{.*?\}/) {
+			$detexExpr =~ s/([^_^])\{(.*?)\}/$1($2)/g;
 		}
 
 		# replace -1 exponent with arc equivalent
@@ -331,6 +331,20 @@ sub detexify {
 					$offset = 4;
 				
 				} else {
+					if ($latexExpr->[$i+1] eq '_') {
+						$i++;
+						
+						if ($latexExpr->[$i+1] eq '{') {
+							while (1) {
+								if ($latexExpr->[$i+1] eq '}') { last; }
+								else { $i++; }
+							}
+
+						} else {
+							$i++;
+						}
+					}
+
 					$left_delim = $latexExpr->[$i+1];
 
 					if ($left_delim eq '(') { $right_delim = ')'; }
@@ -497,15 +511,13 @@ sub collapse {
 			print "char1: $latexChar1\tchar2: $latexChar2\n";
 			
 			if (not(grep(/\Q$latexChar2\E/, @latexTag))) { print "not a tag\n"; }
-			else { 
-				print "it's a tag\n";
+			else { print "it's a tag\n"; }
+		}
 				
-				if (($latexChar2 eq '\sqrt') and
-				($latexChar3 eq '(')) {
-					$latexExpr->[$i+2] = '{';
-					$latexExpr->[$i+4] = '}';
-				}
-			}
+		if (($latexChar2 eq '\sqrt') and
+		($latexChar3 eq '(')) {
+			$latexExpr->[$i+2] = '{';
+			$latexExpr->[$i+4] = '}';
 		}
 
 		# add addition sign into mixed fractions
@@ -515,19 +527,21 @@ sub collapse {
 			$latexChar1 = $latexExpr->[$i];
 		}
 
-		if (not(grep(/\Q$latexChar1\E/, @latexSplit)) and
-		not(grep(/\Q$latexChar2\E/, @latexTag)) and
-		not(grep(/\Q$latexChar2\E/, @latexSplit))) {
-			if (($latexChar1 =~ /\w$/) and
-			($latexChar2 =~ /^\w/)) {
-				$latexChar2 = "*$latexChar2";
-			}
+		if (grep(/\Q$latexChar1\E/, @latexTag) and
+		($latexChar2 eq '(') and
+		($latexChar4 eq ')')) {
+			$fragment = $latexChar1 . '(' . $latexChar3 . ')';
+			splice @$latexExpr, $i, 4, $fragment;
 
-			$fragment = $latexChar1 . $latexChar2;
+			$i = -1;
 
-			if ($debug) { print "combine: $fragment\n"; }
-
-			splice @$latexExpr, $i, 2, $fragment;
+		} elsif (not(grep(/\Q$latexChar1\E/, @latexTag)) and
+		(($latexChar2 eq '+') or 
+		($latexChar2 eq '-')) and
+		not(grep(/\Q$latexChar3\E/, @latexTag))) {
+			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
+			splice @$latexExpr, $i, 3, $fragment;
+			
 			$i = -1;
 
 		} elsif (($latexChar2 eq '{') and
@@ -741,6 +755,24 @@ sub collapse {
 			if ($debug) { print "[] => (): $fragment\n"; }
 
 			splice @$latexExpr, $i, 3, $fragment;
+			$i = -1;
+
+		} elsif (not(grep(/\Q$latexChar1\E/, @latexSplit) or
+		grep(/\Q$latexChar2\E/, @latexTag) or
+		grep(/\Q$latexChar1\E/, @latexTag) or
+		grep(/\Q$latexChar2\E/, @latexSplit)) and
+		not($latexChar1 eq '(') and
+		not($latexChar2 eq ')')) {
+			if (($latexChar1 =~ /\w$/) and
+			($latexChar2 =~ /^\w/)) {
+				$latexChar2 = "*$latexChar2";
+			}
+
+			$fragment = $latexChar1 . $latexChar2;
+
+			if ($debug) { print "combine: $fragment\n"; }
+
+			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
 		}
 	
