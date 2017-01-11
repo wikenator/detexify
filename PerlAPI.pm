@@ -7,6 +7,10 @@ use IPC::Open2;
 use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
+# edit this variable ONLY if you need to call detex from another directory ####
+our $detexify_path = './detexify';
+###############################################################################
+
 @ISA = qw(Exporter);
 @EXPORT = ();
 @EXPORT_OK = qw(preClean detex expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
@@ -63,7 +67,8 @@ sub detex {
 	my $debug = shift;
 	$match = 'f' if not defined $match;
 	$debug = 0 if not defined $debug;
-        my $detexPath = './detexify/detex.pl';
+	our $detexify_path;
+        my $detexPath = $detexify_path . '/detex.pl';
 	my $cmd = "$detexPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
 
 	my $detexID = open2(\*pipeRead, \*pipeWrite, "$cmd");
@@ -85,7 +90,8 @@ sub cleanParens {
 	my $expr = shift;
 	my $debug = shift;
 	$debug = 0 if not defined $debug;
-	my $cleanPath = './detexify/clean_parens.pl';
+	our $detexify_path;
+	my $cleanPath = $detexify_path . '/clean_parens.pl';
 	my $cmd = "$cleanPath" . ($debug ? " -d" : "");
 
 	my $cleanID = open2(\*pipeRead, \*pipeWrite, "$cmd");
