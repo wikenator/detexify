@@ -1,11 +1,12 @@
 #!/usr/bin/perl
 
 # edit this path ONLY if you need to move and call detex from another directory#
-use lib ('.');
-###############################################################################
+use lib ('./detexify');
 
 use strict;
 use warnings;
+use Getopt::Long qw(GetOptions);
+Getopt::Long::Configure qw(gnu_getopt);
 use PerlAPI qw(removeArrayBlanks removeOuterParens condenseArrayExponents unbalancedCharacter);
 use Data::Dumper;
 
@@ -17,6 +18,11 @@ our @latexFunc;
 our $search_terms = join('|', @latexFunc);
 
 my $debug = 0;
+
+GetOptions(
+	'debug|d' => \$debug
+) or die "Usage: $0 [--debug | -d]\n";
+
 my $cleanExpr = <STDIN>;
 chomp($cleanExpr);
 
@@ -517,7 +523,7 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if ($expr =~ /(\)\*?\()/) {
+	if ($expr =~ /[^_]\(.*?(\)\*?\()/) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
