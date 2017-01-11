@@ -4,7 +4,7 @@
 # Creation Date: November 1, 2012
 # Description: Front end script to detex.
 
-use lib ('./detexify/detexify');
+use lib ('./detexify');
 
 use strict;
 use warnings;
