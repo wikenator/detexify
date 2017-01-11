@@ -63,7 +63,7 @@ sub detex {
 	my $debug = shift;
 	$match = 'f' if not defined $match;
 	$debug = 0 if not defined $debug;
-        my $detexPath = './detexify/detexify/detex.pl';
+        my $detexPath = './detexify/detex.pl';
 	my $cmd = "$detexPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
 
 	my $detexID = open2(\*pipeRead, \*pipeWrite, "$cmd");
@@ -85,7 +85,7 @@ sub cleanParens {
 	my $expr = shift;
 	my $debug = shift;
 	$debug = 0 if not defined $debug;
-	my $cleanPath = './detexify/detexify/clean_parens.pl';
+	my $cleanPath = './detexify/clean_parens.pl';
 	my $cmd = "$cleanPath" . ($debug ? " -d" : "");
 
 	my $cleanID = open2(\*pipeRead, \*pipeWrite, "$cmd");
