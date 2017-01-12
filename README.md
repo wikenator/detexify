@@ -15,8 +15,6 @@ In order to call the main detex.pl file from locations other than the root direc
 
 `--match=<f | t> | -m <f | t>` activates the "match" option (described below).
 
-As of now, no command line options for DeTeX exist. Options and flags must be passed with the input. Debugging can also be activated by changing "debug = 0;" to "debug = 1;" near the top of detex.pl.
-
 ### Command Line
 Execute detex.pl in the detexify folder, then input your LaTeX or TeX string on the command line. Press enter and watch for your detexified string.
 ```
