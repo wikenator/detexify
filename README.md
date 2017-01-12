@@ -7,6 +7,13 @@ DeTeXify removes LaTeX and TeX tags from an input string and returns a computer-
 In order to call the main detex.pl file from locations other than the root directory of this repository, you may need to update the `use lib` statements in `detex.pl` and `clean_parens.pl`, as well as the `detexify_path` variable in `PerlAPI.pm`.
 
 ## Usage
+```
+./detex.pl [--debug | -d] [--match=<f | t> | -m <f | t>]
+```
+
+`--debug | -d` activates debugging output.
+`--match=<f | t> | -m <f | t>` activates the "match" option (described below).
+
 As of now, no command line options for DeTeX exist. Options and flags must be passed with the input. Debugging can also be activated by changing "debug = 0;" to "debug = 1;" near the top of detex.pl.
 
 ### Command Line
@@ -18,18 +25,18 @@ Execute detex.pl in the detexify folder, then input your LaTeX or TeX string on 
 > 
 ```
 
-You can also supply a "match" option (either "t" or "f", symbolizing "true" or "false" respectively) after your input with a "@#@" delimiter. This is currently only used for DeTeXifying square root commands. A "match" option of false is the default behavior for detex.pl.
+You can also supply a "match" option (either "t" or "f", symbolizing "true" or "false" respectively) after your input with a `-m` or `--match` option. This is currently only used for DeTeXifying square root commands. A "match" option of false is the default behavior for detex.pl.
 ```
 > ./detex.pl
 \sqrt{2}
 2^(1/2)
 >
-> ./detex.pl
-\sqrt{2}@#@f
+> ./detex.pl --match=f
+\sqrt{2}
 2^(1/2)
 > 
-> ./detex.pl
-\sqrt{2}@#@t
+> ./detex.pl -m t
+\sqrt{2}
 sqrt(2)
 >
 ```
