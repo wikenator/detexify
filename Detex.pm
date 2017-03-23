@@ -353,9 +353,11 @@ sub detexify {
 					$i++;
 					$j = $i+1;
 					$offset = 1;
+
+					if ($latexExpr->[$i+1] eq $left_delim) { $delim_count++; }
 				}
 
-				$delim_count = 1;
+				$delim_count++;
 
 			} elsif ($latexExpr->[$i+1] and
 			($latexExpr->[$i+1] eq '^') and 
