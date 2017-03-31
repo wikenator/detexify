@@ -525,7 +525,14 @@ sub collapse {
 		# add addition sign into mixed fractions
 		if (($latexChar2 eq '\frac') and
 		($latexChar1 =~ /\d*\.?\d+$/)) {
-			$latexExpr->[$i] = $latexChar1 . '+';
+			if ($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) {
+				$latexExpr->[$i] = $latexChar1 . '+';
+
+			# otherwise add multiplication sign to scalar multiple
+			} else {
+				$latexExpr->[$i] = $latexChar1 . '*';
+			}
+
 			$latexChar1 = $latexExpr->[$i];
 		}
 
