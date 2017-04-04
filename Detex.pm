@@ -353,9 +353,11 @@ sub detexify {
 					$i++;
 					$j = $i+1;
 					$offset = 1;
+
+					if ($latexExpr->[$i+1] eq $left_delim) { $delim_count++; }
 				}
 
-				$delim_count = 1;
+				$delim_count++;
 
 			} elsif ($latexExpr->[$i+1] and
 			($latexExpr->[$i+1] eq '^') and 
@@ -510,20 +512,39 @@ sub collapse {
 			print Dumper($latexExpr);
 			print "char1: $latexChar1\tchar2: $latexChar2\n";
 			
-			if (not(grep(/\Q$latexChar2\E/, @latexTag))) { print "not a tag\n"; }
+			if (not(grep(/\Q($latexChar2)\E/, @latexTag))) { print "not a tag\n"; }
 			else { print "it's a tag\n"; }
 		}
 				
 		if (($latexChar2 eq '\sqrt') and
-		($latexChar3 eq '(')) {
+		($latexChar3 eq '(') and
+		(($latexExpr->[$i+4] eq ')') or
+		($latexExpr->[$i+5] eq ')'))) {
 			$latexExpr->[$i+2] = '{';
-			$latexExpr->[$i+4] = '}';
+
+			if ($latexExpr->[$i+4] eq ')') {
+				$latexExpr->[$i+4] = '}';
+
+			} elsif ($latexExpr->[$i+5] eq ')') {
+				$latexExpr->[$i+5] = '}';
+				$fragment = $latexChar4 . $latexExpr->[$i+4];
+				splice @$latexExpr, $i+3, 2, $fragment;
+
+				$i = -1;
+			}
 		}
 
 		# add addition sign into mixed fractions
 		if (($latexChar2 eq '\frac') and
 		($latexChar1 =~ /\d*\.?\d+$/)) {
-			$latexExpr->[$i] = $latexChar1 . '+';
+			if ($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) {
+				$latexExpr->[$i] = $latexChar1 . '+';
+
+			# otherwise add multiplication sign to scalar multiple
+			} else {
+				$latexExpr->[$i] = $latexChar1 . '*';
+			}
+
 			$latexChar1 = $latexExpr->[$i];
 		}
 
@@ -699,7 +720,10 @@ sub collapse {
 
 			splice (@$latexExpr, $i, 2, $fragment);
 
-		} elsif ($latexChar2 =~ /^\^\(.*\)/) {
+		} elsif ($latexChar2 =~ /^\^[\{\(].*[\)\}]/) {
+			$latexChar2 =~ s/\{/(/;
+			$latexChar2 =~ s/\}/)/;
+
 			#create 'a^b' fragment
 			$fragment = &detexify([$latexChar1 . $latexChar2]);
 
@@ -766,6 +790,13 @@ sub collapse {
 			if (($latexChar1 =~ /\w$/) and
 			($latexChar2 =~ /^\w/)) {
 				$latexChar2 = "*$latexChar2";
+
+			} elsif ($latexChar1 eq '*') {
+				$i--;
+#				$latexChar1 = $latexExpr->[$i-1] . $latexChar1;
+				splice @$latexExpr, $i, 2, $latexExpr->[$i] . $latexChar1;
+#print $latexExpr->[$i-1];
+				$latexChar1 = $latexExpr->[$i];
 			}
 
 			$fragment = $latexChar1 . $latexChar2;

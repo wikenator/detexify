@@ -47,7 +47,7 @@ sub cleanParens {
 		$expr =~ s/([^\}\)])\((pi)\)/$1$2/g;
 	}
 
-	if ($debug) { print "removed parens: $expr\n"; }
+	if ($debug) { print STDERR "removed parens: $expr\n"; }
 
 	# ((expr)^(pow)) -> (expr)^(pow)
 	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/($1)$2/g; }
@@ -95,7 +95,7 @@ sub cleanParens {
 
 			if (($l and $r) and
 			($l < $r)) {
-				if ($debug) { print "dbl paren expr: " . substr($expr, $l, $r-$l) . "\n"; }
+				if ($debug) { print STDERR "dbl paren expr: " . substr($expr, $l, $r-$l) . "\n"; }
 
 				$expr = substr($expr, 0, $l-1) . substr($expr, $l, $r-$l) . substr($expr, $r+1);
 		#		$l = $r + 1;
@@ -108,7 +108,7 @@ sub cleanParens {
 
 	if (&unbalancedCharacter($expr, '(', ')', $debug) != 0) { $expr = "($expr)"; }
 
-	if ($debug) { print "removed double parens: $expr\n"; }
+	if ($debug) { print STDERR "removed double parens: $expr\n"; }
 
 	# remove unnecessary parentheses
 	## added \( and \) around internal $1 6/18/14
@@ -127,17 +127,17 @@ sub cleanSingleParens {
 	$latexExpr = &removeArrayBlanks($latexExpr, $debug);
 	my $arraySize = scalar @$latexExpr;
 
-	if ($debug) { print "removing single parens\n"; }
+	if ($debug) { print STDERR "removing single parens\n"; }
 
 	for (my $i = 0; $i < $arraySize; $i++) {
 		if (grep(/\Q$latexExpr->[$i]\E/, @latexFunc)) {
-			if ($debug) { print "function found\n"; }
+			if ($debug) { print STDERR "function found\n"; }
 
 			next;
 		}
 
 		if ($i == 0) {
-			if ($debug) { print "first index\n"; }
+			if ($debug) { print STDERR "first index\n"; }
 
 			$latexExpr->[$i] =~ s/\((.!?)\)/$1/g;
 
@@ -151,7 +151,7 @@ sub cleanSingleParens {
 			}
 
 		} elsif (grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) {
-			if ($debug) { print "previous entry is function\n"; }
+			if ($debug) { print STDERR "previous entry is function\n"; }
 
 			my $k = $i;
 			my $left_paren_count = ($latexExpr->[$k] =~ tr/\(//);
@@ -191,18 +191,18 @@ sub cleanSingleParens {
 				$latexExpr->[$i] = "($func_arg)";
 			}
 
-			if ($debug) { print "func arg: $latexExpr->[$i]\n"; }
+			if ($debug) { print STDERR "func arg: $latexExpr->[$i]\n"; }
 
 			splice @$latexExpr, $i-1, 2, ($latexExpr->[$i-1] . $latexExpr->[$i]);
 			$i--;
 			$arraySize = scalar @$latexExpr;
 
 		} else {
-			if ($debug) { print "removing parens: $latexExpr->[$i]\n"; }
+			if ($debug) { print STDERR "removing parens: $latexExpr->[$i]\n"; }
 
 			$latexExpr->[$i] =~ s/\((.!?)\)/$1/g;
 
-			if ($debug) { print "single parens removed\n"; }
+			if ($debug) { print STDERR "single parens removed\n"; }
 
 			# factorials, exponents, and expressions containing powers
 			if (($latexExpr->[$i] !~ /[\^\-]\(.{2,}\)/) and
@@ -221,9 +221,9 @@ sub cleanSingleParens {
 		}
 
 		if ($debug) { 
-			print "i: $i\tarray size: $arraySize\n";
-			print "$i: $latexExpr->[$i]\n";
-			print Dumper($latexExpr);
+			print STDERR "i: $i\tarray size: $arraySize\n";
+			print STDERR "$i: $latexExpr->[$i]\n";
+			print STDERR Dumper($latexExpr);
 		}
 	}
 
@@ -239,7 +239,7 @@ sub cleanFractions {
 	$latexExpr = &removeArrayBlanks($latexExpr, $debug);
 	$latexExpr = &condenseArrayExponents($latexExpr, $debug);
 
-	if ($debug) { print Dumper($latexExpr); }
+	if ($debug) { print STDERR Dumper($latexExpr); }
 
 	while (grep(/^\/$/, @$latexExpr)) {
 		my $arraySize = scalar @$latexExpr;
@@ -248,16 +248,16 @@ sub cleanFractions {
 		if (($i >= $arraySize-1) or (($arraySize == 3) and ($latexExpr->[1] eq '/'))) { last; }
 
 		if ($debug) {
-			print "removing fraction numerator parens\n";
-			print Dumper($latexExpr);
+			print STDERR "removing fraction numerator parens\n";
+			print STDERR Dumper($latexExpr);
 		}
 
 		for (; $i < $arraySize; $i++) {
 			if (not($firstPass)) { last; }
 
 			if ($debug) {
-				print "first numer character: $latexExpr->[$i]\n";
-				print Dumper($latexExpr);
+				print STDERR "first numer character: $latexExpr->[$i]\n";
+				print STDERR Dumper($latexExpr);
 			}
 
 			if (($latexExpr->[$i] eq '(') and
@@ -281,7 +281,7 @@ sub cleanFractions {
 				$subNumerExpr = &removeOuterParens($subNumerExpr, $debug);
 				$delim_count = 0;
 
-				if ($debug) { print "sub numer expr: $subNumerExpr\n"; }
+				if ($debug) { print STDERR "sub numer expr: $subNumerExpr\n"; }
 
 				if (($j+1 < $arraySize) and
 				($latexExpr->[$j+1] ne '/')) {
@@ -292,7 +292,7 @@ sub cleanFractions {
 				} elsif ($subNumerExpr =~ /\//) {
 					$subNumerExpr = &cleanParens($subNumerExpr, $debug);
 
-					if ($debug) { print "after second numer paren cleaning: $subNumerExpr\n"; }
+					if ($debug) { print STDERR "after second numer paren cleaning: $subNumerExpr\n"; }
 
 					if (($subNumerExpr !~ /\(?[^\-+]\)?\^\(?\w+\/?\w*?\)?\//) or
 					($subNumerExpr =~ /[^({]+[+\-][^)}]+/)) {
@@ -313,8 +313,8 @@ sub cleanFractions {
 					my $subArraySize = scalar @$subSubExpr;
 
 					if ($debug) {
-						print "sub sub numer expr of size $subArraySize\n";
-						print Dumper($subSubExpr);
+						print STDERR "sub sub numer expr of size $subArraySize\n";
+						print STDERR Dumper($subSubExpr);
 					}
 
 					my $k = 0;
@@ -324,7 +324,7 @@ sub cleanFractions {
 						(($subSubExpr->[$k] eq '-') and
 						($k > 0))) and 
 						(not($innerExpr))) {
-							if ($debug) { print "numerator needs the parens\n"; }
+							if ($debug) { print STDERR "numerator needs the parens\n"; }
 
 							my $l = $k;
 							$removeParens = 0;
@@ -340,13 +340,13 @@ sub cleanFractions {
 							last;
 
 						} elsif ($subSubExpr->[$k] eq '(') {
-							if ($debug) { print "inner expr found\n"; }
+							if ($debug) { print STDERR "inner expr found\n"; }
 
 							$innerExpr = 1;
 							$delim_count++;
 
 						} elsif ($subSubExpr->[$k] eq ')') {
-							if ($debug) { print "leaving inner expr\n"; }
+							if ($debug) { print STDERR "leaving inner expr\n"; }
 
 							$delim_count--;
 	
@@ -377,7 +377,7 @@ sub cleanFractions {
 			}
 		}
 
-		if ($debug) { print "numer paren check done, moving on to denom\n"; }
+		if ($debug) { print STDERR "numer paren check done, moving on to denom\n"; }
 
 		$arraySize = scalar @$latexExpr;
 		$firstPass = 2;
@@ -388,8 +388,8 @@ sub cleanFractions {
 			if (not($firstPass)) { last; }
 
 			if ($debug) {
-				print "first denom character: $latexExpr->[$i]\n";
-				print Dumper($latexExpr);
+				print STDERR "first denom character: $latexExpr->[$i]\n";
+				print STDERR Dumper($latexExpr);
 			}
 
 			if ($latexExpr->[$i] ne '(') {
@@ -417,7 +417,7 @@ sub cleanFractions {
 				$subDenomExpr = &removeOuterParens($subDenomExpr, $debug);
 				$delim_count = 0;
 
-				if ($debug) { print "sub denom expr: $subDenomExpr\n"; }
+				if ($debug) { print STDERR "sub denom expr: $subDenomExpr\n"; }
 	
 				if (&unbalancedCharacter($subDenomExpr, '(', ')', $debug) == 0) {
 					my $subSubExpr = [split(/(\(|\)|\+|\-|\*|\/)/, $subDenomExpr)];
@@ -430,8 +430,8 @@ sub cleanFractions {
 					my $subArraySize = scalar @$subSubExpr;
 
 					if ($debug) {
-						print "sub sub denom expr of size $subArraySize\n";
-						print Dumper($subSubExpr);
+						print STDERR "sub sub denom expr of size $subArraySize\n";
+						print STDERR Dumper($subSubExpr);
 					}
 
 					for (my $k = 0; $k < $subArraySize; $k++) {
@@ -440,7 +440,7 @@ sub cleanFractions {
 						($subSubExpr->[$k] eq '*') or
 						($subSubExpr->[$k] eq '/')) and 
 						(not($innerExpr))) {
-							if ($debug) { print "denominator needs the parens\n"; }
+							if ($debug) { print STDERR "denominator needs the parens\n"; }
 
 							my $l = $k;
 							$removeParens = 0;
@@ -453,7 +453,7 @@ sub cleanFractions {
 							if ($subDenomExpr =~ /\//) {
 								$subDenomExpr = &cleanParens($subDenomExpr, $debug);
 
-								if ($debug) { print "after second denom paren cleaning: $subDenomExpr\n"; }
+								if ($debug) { print STDERR "after second denom paren cleaning: $subDenomExpr\n"; }
 							}
 
 							splice @$latexExpr, $i, $j-$i+1, "($subDenomExpr)";
@@ -462,13 +462,13 @@ sub cleanFractions {
 							last;
 
 						} elsif ($subSubExpr->[$k] eq '(') {
-							if ($debug) { print "inner expr found\n"; }
+							if ($debug) { print STDERR "inner expr found\n"; }
 
 							$innerExpr = 1;
 							$delim_count++;
 
 						} elsif ($subSubExpr->[$k] eq ')') {
-							if ($debug) { print "leaving inner expr\n"; }
+							if ($debug) { print STDERR "leaving inner expr\n"; }
 
 							$delim_count--;
 
@@ -488,7 +488,7 @@ sub cleanFractions {
 
 		$expr = join('', @$latexExpr);
 
-		if ($debug) { print "removed parens 2: $expr\n"; }
+		if ($debug) { print STDERR "removed parens 2: $expr\n"; }
 	
 		# remove parentheses around fraction numerator for special cases
 #		if ($expr =~ /^\({2}(.*?)\)\^\(.*\){2}\//) { $expr =~ s/\((.*?)\)\//$1\//g; }
@@ -497,13 +497,13 @@ sub cleanFractions {
 		# remove parentheses around exponent term in numerator
 #		if ($expr =~ /\([^\+\-]+?\^((\(\d+(\/\d+)?\))|(\d+))\)\//) { $expr =~ s/\(([^\+\-]+?\^((\(\d+(\/\d+)?\))|(\d+)))\)\//$1\//g; }
 	
-		if ($debug) { print "removed parens 2.5: $expr\n"; }
+		if ($debug) { print STDERR "removed parens 2.5: $expr\n"; }
 
 		# remove parentheses around fraction denominator
 		$expr =~ s/(?<=\/)\(((?!-?\d!?)[^\(\+\-\*\/]+)\)/$1/g; # keep parens for \d[var]
 		$expr =~ s/(?<=\/)\((-?\d+!?)\)/$1/g; # remove parens for just digits
 
-		if ($debug) { print "removed parens 3: $expr\n"; }
+		if ($debug) { print STDERR "removed parens 3: $expr\n"; }
 
 		# remove parentheses around fractions not 'attached' to surrounding expression
 		if (($expr !~ /($search_terms|\^|\/)(\^[\{\(]?\d+[\}\)]?)?\([a-zA-Z0-9]+\/[a-zA-Z0-9]+\)/) and
@@ -513,7 +513,7 @@ sub cleanFractions {
 			$expr =~ s/([\+\-])\(-?([a-zA-Z0-9]+\/[a-zA-Z0-9]+)\)([a-z\+\-]?)/$1-$2$3/g;
 		}
 
-		if ($debug) { print "removed parens 4: $expr\n"; }
+		if ($debug) { print STDERR "removed parens 4: $expr\n"; }
 	}
 
 	return $expr;
@@ -523,7 +523,7 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if ($expr =~ /[^_]\(.*?(\)\*?\()/) {
+	if ($expr =~ /[^_]\(.*?(\)\*?\().*?\)[^^]/) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
@@ -544,7 +544,7 @@ sub removeButtingParens {
 			$j--;
 		}
 
-		if ($debug) { print "sub left expr: $subLeftExpr\n"; }
+		if ($debug) { print STDERR "sub left expr: $subLeftExpr\n"; }
 
 		while ($delim_count_n > 0) {
 			if ((substr $expr, $n, 1) eq '(') { $delim_count_n++; }
@@ -557,7 +557,7 @@ sub removeButtingParens {
 			$n++;
 		}
 
-		if ($debug) { print "sub right expr: $subRightExpr\n"; }
+		if ($debug) { print STDERR "sub right expr: $subRightExpr\n"; }
 
 		my $left_flag = 2;
 		my $override = 0;
@@ -582,20 +582,20 @@ sub removeButtingParens {
 		if ((not($left_flag) or $override) and ($subRightExpr !~ /[\+\-]/)) { $subRightExpr = &removeOuterParens($subRightExpr, $debug); }
 
 		if ($debug) {
-			print "sub left expr: $subLeftExpr\n";
-			print "sub right expr: $subRightExpr\n";
+			print STDERR "sub left expr: $subLeftExpr\n";
+			print STDERR "sub right expr: $subRightExpr\n";
 		}
 
 		substr $expr, $j, $i-$j+1, $subLeftExpr;
 		
-		if ($debug) { print "left replacement: $expr\n"; }
+		if ($debug) { print STDERR "left replacement: $expr\n"; }
 
 		substr $expr, $m-2+$left_flag, $n-$m+1, $subRightExpr;
 
-		if ($debug) { print "right replacement: $expr\n"; }
+		if ($debug) { print STDERR "right replacement: $expr\n"; }
 	}
 
-	if ($debug) { print "unnecessary paren removal: $expr\n"; }
+	if ($debug) { print STDERR "unnecessary paren removal: $expr\n"; }
 
 	return $expr;
 }
