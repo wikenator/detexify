@@ -793,10 +793,15 @@ sub collapse {
 
 			} elsif ($latexChar1 eq '*') {
 				$i--;
-#				$latexChar1 = $latexExpr->[$i-1] . $latexChar1;
 				splice @$latexExpr, $i, 2, $latexExpr->[$i] . $latexChar1;
-#print $latexExpr->[$i-1];
 				$latexChar1 = $latexExpr->[$i];
+
+			# keep left paren for numerator together if division found
+			} elsif (($latexChar1 eq ')') and
+			($latexChar2 eq '/') and
+			($latexExpr->[$i-2] eq '(')) {
+				$i--;
+				splice @$latexExpr, $i-1, 2, $latexExpr->[$i-1] . $latexExpr->[$i];
 			}
 
 			$fragment = $latexChar1 . $latexChar2;
