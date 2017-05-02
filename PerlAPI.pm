@@ -346,6 +346,11 @@ sub latexplosion {
 		if (grep(/\\/, $subExpr->[$i])) {
 			@fragment = split(/(?=[\\])/, $subExpr->[$i]);
 			splice (@$subExpr, $i, 1, @fragment);
+
+		} elsif (grep(/^.+?#/, $subExpr->[$i])) {
+			@fragment = split(/#/, $subExpr->[$i]);
+			splice (@$subExpr, $i, 0, $fragment[0]);
+			splice (@$subExpr, $i+1, 1, "#$fragment[1]");
 		}
 	}
 
