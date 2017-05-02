@@ -397,8 +397,13 @@ sub detexify {
 					if (($latexExpr->[$k] eq $left_delim) and ($j != $k)) { $delim_count++; }
 					elsif ($latexExpr->[$k] eq $right_delim) { $delim_count--; }
 
-					if ($delim_count > 0) { $subString .= $latexExpr->[$k]; }
-					elsif (($delim_count == 0) and ($latexExpr->[$k-1] ne $right_delim) and ($latexExpr->[$k] eq $right_delim)) {
+					if ($delim_count > 0) {
+						$subString .= $latexExpr->[$k];
+
+					} elsif (($delim_count == 0) and
+					($latexExpr->[$k-1] ne $right_delim) and
+					($latexExpr->[$k] eq $right_delim) and
+					($subString =~ /^\Q$left_delim\E/)) {
 						$subString .= $latexExpr->[$k];
 						$k++;
 						last;
