@@ -561,6 +561,8 @@ sub collapse {
 		if (grep(/\Q$latexChar1\E/, @latexTag) and
 		($latexChar2 eq '(') and
 		($latexChar4 eq ')')) {
+			if ($debug) { print STDERR "function with simple arg\n"; }
+
 			$fragment = $latexChar1 . '(' . $latexChar3 . ')';
 			splice @$latexExpr, $i, 4, $fragment;
 
@@ -722,13 +724,19 @@ sub collapse {
 			if ($latexChar2 ne '(') {
 				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
 			
-			} else {
-				$fragment = &detexify([$latexChar1 . $latexChar2]);
+				if ($debug) { print "^a fragment: $fragment\n"; }
+
+				splice (@$latexExpr, $i, 2, $fragment);
+
+			} elsif (($latexChar2 eq '(') and
+			$latexChar4 and
+			($latexChar4 eq ')')) {
+				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4]);
+
+				if ($debug) { print "^(a) fragment: $fragment\n"; }
+
+				splice (@$latexExpr, $i, 4, $fragment);
 			}
-
-			if ($debug) { print "^a fragment: $fragment\n"; }
-
-			splice (@$latexExpr, $i, 2, $fragment);
 
 		} elsif ($latexChar2 =~ /^\^[\{\(].*[\)\}]/) {
 			$latexChar2 =~ s/\{/(/;
