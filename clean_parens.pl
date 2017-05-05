@@ -153,10 +153,10 @@ sub cleanSingleParens {
 
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
 
-			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)/) {
+			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)[^\^]/) {
 				if ($debug) { print STDERR "surrounding multiplication\n"; }
 
-				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)/*$1/g;
+				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)[^\^]/*$1/g;
 
 			#} elsif (($latexExpr->[$i] =~ /^\(-?[\w\d\.]+?\)/) or
 			#($latexExpr->[$i] =~ /[^\^]\(-?[\w\d\.]+?\)$/)) {
