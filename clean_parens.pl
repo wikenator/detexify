@@ -142,7 +142,7 @@ sub cleanSingleParens {
 			$latexExpr->[$i] =~ s/\((.!?)\)/$1/g;
 
 			if (($latexExpr->[$i] !~ /[\^\-]\(.{2,}\)/) and
-			($latexExpr->[$i] !~ /\(.{2,}\)^/)) {
+			($latexExpr->[$i] !~ /\(.{2,}\)\^/)) {
 				if ($debug) { print STDERR "surrounding exponents\n"; }
 
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
