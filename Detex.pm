@@ -570,10 +570,14 @@ sub collapse {
 			$i = -1;
 
 		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexTag)) and
+		not(grep(/(\Q$latexChar1\E)/, @latexSplit)) and
 		(($latexChar2 eq '+') or 
 		($latexChar2 eq '-')) and
 		not(grep(/(\Q$latexChar3\E)/, @latexTag))) {
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
+
+			if ($debug) { print STDERR "combining additive items: $fragment\n"; }
+
 			splice @$latexExpr, $i, 3, $fragment;
 			
 			$i = -1;
@@ -825,7 +829,7 @@ sub collapse {
 
 			$fragment = $latexChar1 . $latexChar2;
 
-			if ($debug) { print "combine: $fragment\n"; }
+			if ($debug) { print STDERR "combine: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
@@ -834,9 +838,18 @@ sub collapse {
 		($latexChar3 eq ')')) {
 			$fragment = "($latexChar2)";
 
-			if ($debug) { print "sandwiching: $fragment\n"; }
+			if ($debug) { print STDERR "sandwiching: $fragment\n"; }
 
 			splice @$latexExpr, $i, 3, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 =~ /\)$/) and
+		($latexChar2 =~ /^[\w\d]+$/)) {
+			$fragment = $latexChar1 . $latexChar2;
+
+			if ($debug) { print STDERR "combining single variable: $fragment\n"; }
+
+			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
 		}
 	
