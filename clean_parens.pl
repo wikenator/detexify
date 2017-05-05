@@ -130,7 +130,7 @@ sub cleanSingleParens {
 	if ($debug) { print STDERR "removing single parens\n"; }
 
 	for (my $i = 0; $i < $arraySize; $i++) {
-		if (grep(/\Q$latexExpr->[$i]\E/, @latexFunc)) {
+		if (grep(/(\Q$latexExpr->[$i]\E)/, @latexFunc)) {
 			if ($debug) { print STDERR "function found\n"; }
 
 			next;
@@ -154,7 +154,7 @@ sub cleanSingleParens {
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
 			}
 
-		} elsif (grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) {
+		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) {
 			if ($debug) { print STDERR "previous entry is function\n"; }
 
 			my $k = $i;
@@ -265,8 +265,9 @@ sub cleanFractions {
 			}
 
 			if (($latexExpr->[$i] eq '(') and
-			((not(grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) and 
-			($latexExpr->[$i-1] !~ /($search_terms)$/)) or
+			((not(grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) and 
+			($latexExpr->[$i-1] !~ /($search_terms)$/) and
+			($latexExpr->[$i-1] !~ /\^$/)) or
 			($i == 0))) {
 				my $delim_count = 1;
 				my $j = $i+1;
