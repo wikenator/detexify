@@ -305,7 +305,7 @@ sub detexify {
 
 			&collapse($latexExpr);
 
-		} elsif (grep(/\Q$latexChar\E/, @latexTag)) {
+		} elsif (grep(/\Q($latexChar)\E/, @latexTag)) {
 			if ($debug) { print "other latex tag\n"; }
 
 			my ($tag_arg, $left_delim, $right_delim);
@@ -559,7 +559,7 @@ sub collapse {
 			$latexChar1 = $latexExpr->[$i];
 		}
 
-		if (grep(/\Q$latexChar1\E/, @latexTag) and
+		if (grep(/\Q($latexChar1)\E/, @latexTag) and
 		($latexChar2 eq '(') and
 		($latexChar4 eq ')')) {
 			if ($debug) { print STDERR "function with simple arg\n"; }
@@ -569,10 +569,10 @@ sub collapse {
 
 			$i = -1;
 
-		} elsif (not(grep(/\Q$latexChar1\E/, @latexTag)) and
+		} elsif (not(grep(/\Q($latexChar1)\E/, @latexTag)) and
 		(($latexChar2 eq '+') or 
 		($latexChar2 eq '-')) and
-		not(grep(/\Q$latexChar3\E/, @latexTag))) {
+		not(grep(/\Q($latexChar3)\E/, @latexTag))) {
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
 			splice @$latexExpr, $i, 3, $fragment;
 			
@@ -628,8 +628,8 @@ sub collapse {
 				splice @$latexExpr, $i, 7, $fragment;
 				$i = -1;
 
-			} elsif (not(grep(/\Q$latexChar1\E/, @latexTag)) and
-			not(grep(/\Q$latexChar1\E/, @latexSplit))) {
+			} elsif (not(grep(/\Q($latexChar1)\E/, @latexTag)) and
+			not(grep(/\Q($latexChar1)\E/, @latexSplit))) {
 				# create '#()' fragment
 				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
 	
@@ -718,9 +718,9 @@ sub collapse {
 			}
 
 		} elsif (($latexChar1 eq '^') and
-		(not(grep(/\Q$latexChar2\E/, @latexTag))) and
-		(not(grep(/\Q$latexChar2\E/, @latexSplit))) and
-		(not(grep(/\Q$latexExpr->[$i-1]\E/, @latexTag)))) {
+		(not(grep(/\Q($latexChar2)\E/, @latexTag))) and
+		(not(grep(/\Q($latexChar2)\E/, @latexSplit))) and
+		(not(grep(/\Q($latexExpr->[$i-1])\E/, @latexTag)))) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
 				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
@@ -800,10 +800,10 @@ sub collapse {
 			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 
-		} elsif (not(grep(/\Q$latexChar1\E/, @latexSplit) or
-		grep(/\Q$latexChar2\E/, @latexTag) or
-		grep(/\Q$latexChar1\E/, @latexTag) or
-		grep(/\Q$latexChar2\E/, @latexSplit)) and
+		} elsif (not(grep(/\Q($latexChar1)\E/, @latexSplit) or
+		grep(/\Q($latexChar2)\E/, @latexTag) or
+		grep(/\Q($latexChar1)\E/, @latexTag) or
+		grep(/\Q($latexChar2)\E/, @latexSplit)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
 			if (($latexChar1 =~ /\w$/) and
