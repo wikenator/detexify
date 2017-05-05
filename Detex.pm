@@ -629,7 +629,7 @@ sub collapse {
 				$i = -1;
 
 			} elsif (not(grep(/(\Q$latexChar1\E)/, @latexTag)) and
-			not(grep(/\Q$latexChar1\E/, @latexSplit))) {
+			not(grep(/(\Q$latexChar1\E)/, @latexSplit))) {
 				# create '#()' fragment
 				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
 	
@@ -719,7 +719,7 @@ sub collapse {
 
 		} elsif (($latexChar1 eq '^') and
 		(not(grep(/(\Q$latexChar2\E)/, @latexTag))) and
-		(not(grep(/\Q$latexChar2\E/, @latexSplit))) and
+		(not(grep(/(\Q$latexChar2\E)/, @latexSplit))) and
 		(not(grep(/(\Q$latexExpr->[$i-1]\E)/, @latexTag)))) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
@@ -800,10 +800,10 @@ sub collapse {
 			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 
-		} elsif (not(grep(/\Q$latexChar1\E/, @latexSplit) or
+		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexSplit) or
 		grep(/(\Q$latexChar2\E)/, @latexTag) or
 		grep(/(\Q$latexChar1\E)/, @latexTag) or
-		grep(/\Q$latexChar2\E/, @latexSplit)) and
+		grep(/(\Q$latexChar2\E)/, @latexSplit)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
 			if (($latexChar1 =~ /\w$/) and
