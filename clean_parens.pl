@@ -158,6 +158,9 @@ sub cleanSingleParens {
 
 				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)[^\^]/*$1/g;
 
+			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)$/) {
+				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)/*$1/g;
+
 			#} elsif (($latexExpr->[$i] =~ /^\(-?[\w\d\.]+?\)/) or
 			#($latexExpr->[$i] =~ /[^\^]\(-?[\w\d\.]+?\)$/)) {
 			#	if ($debug) { print STDERR "catch all\n"; }
