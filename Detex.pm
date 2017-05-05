@@ -189,8 +189,8 @@ sub detex {
 		### tag: KEEP{}
 		#$detexExpr =~ s/{/(/g;	# replace curly braces with parentheses
 		#$detexExpr =~ s/}/)/g;	# replace curly braces with parentheses
-		if ($detexExpr =~ /[^_^]\{.*?\}/) {
-			$detexExpr =~ s/([^_^])\{(.*?)\}/$1($2)/g;
+		if ($detexExpr =~ /[^_\^]\{.*?\}/) {
+			$detexExpr =~ s/([^_\^])\{(.*?)\}/$1($2)/g;
 		}
 
 		# replace -1 exponent with arc equivalent
@@ -207,8 +207,8 @@ sub detex {
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
 	# final paren removal for negative numbers
-	$detexExpr =~ s/([^^])\((-\w+)\)([^^])/$1$2$3/g;
-	$detexExpr =~ s/^\((-\w+)\)([^^])/$1$2/;
+	$detexExpr =~ s/([^\^])\((-\w+)\)([^\^])/$1$2$3/g;
+	$detexExpr =~ s/^\((-\w+)\)([^\^])/$1$2/;
 
 	return $detexExpr;
 }
