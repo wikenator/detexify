@@ -143,11 +143,15 @@ sub cleanSingleParens {
 
 			if (($latexExpr->[$i] !~ /[\^\-]\(.{2,}\)/) and
 			($latexExpr->[$i] !~ /\(.{2,}\)\^/)) {
+				if ($debug) { print STDERR "surrounding exponents\n"; }
+
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
 				$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
 
 			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
-				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)/$1/g;
+				if ($debug) { print STDERR "base paren removal\n"; }
+
+				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
 			}
 
 		} elsif (grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) {
