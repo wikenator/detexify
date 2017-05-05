@@ -139,11 +139,11 @@ sub detex {
 	$latexExpr =~ s/\\emptyset/#emptyset/g;	# escape emptyset tag
 	$latexExpr =~ s/\\operatorname\{(.*?)\}/$1/g;	# remove operatorname
 
-	if ($latexExpr =~ /\\?((a)(rc)?)?(cos|sin|tan|csc|sec|cot)[^A-Za-z]/) {
-		$latexExpr =~ s/\\?(((a)(rc)?)?)(cos|sin|tan|csc|sec|cot)/#$1$5/g;# escape atrig tag
+	if ($latexExpr =~ /\\?((a)(rc)?)?(cos|sin|tan|csc|sec|cot)(h)?[^A-Za-z]/) {
+		$latexExpr =~ s/\\?(((a)(rc)?)?)(cos|sin|tan|csc|sec|cot)/#$1$5$6/g;# escape atrig tag
 	}
 
-	$latexExpr =~ s/#arc(cos|sin|tan|csc|sec|cot)/#a$1/g;
+	$latexExpr =~ s/#arc(cos|sin|tan|csc|sec|cot)/#a$1$2/g;
 	$latexExpr =~ s/\\?sqrt/\\sqrt/g;	# escape sqrt tag
 	$latexExpr =~ s/exp/e\^/g;		# replace exp function with e
 
