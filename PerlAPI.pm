@@ -38,6 +38,7 @@ sub preClean {
 	$expr =~ s/[\?\$]//g;		# remove punctuation and latex delimiters
 	$expr =~ s/\\%/%/g;		# remove backslashes before percent signs
 	$expr =~ s/\*\*/\^/g;		# replace python ** with sage ^
+	$expr =~ s/\*//g;		# remove verbose multiplication
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
@@ -345,6 +346,11 @@ sub latexplosion {
 		if (grep(/\\/, $subExpr->[$i])) {
 			@fragment = split(/(?=[\\])/, $subExpr->[$i]);
 			splice (@$subExpr, $i, 1, @fragment);
+
+		} elsif (grep(/^.+?#/, $subExpr->[$i])) {
+			@fragment = split(/#/, $subExpr->[$i]);
+			splice (@$subExpr, $i, 0, $fragment[0]);
+			splice (@$subExpr, $i+1, 1, "#$fragment[1]");
 		}
 	}
 
