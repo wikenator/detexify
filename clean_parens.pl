@@ -151,19 +151,18 @@ sub cleanSingleParens {
 			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
 				if ($debug) { print STDERR "base paren removal\n"; }
 
-#				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)^/$1^/g;
-				$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)\^/$1^/g;
+				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
 
-			} elsif ($latexExpr->[$i] =~ /\*\(-?[\w\d\.]+?\)/) {
+			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)/) {
 				if ($debug) { print STDERR "surrounding multiplication\n"; }
 
-				$latexExpr->[$i] =~ s/\*\((-?[\w\d\.]+?)\)/*$1/g;
+				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)/*$1/g;
 
-			} elsif (($latexExpr->[$i] =~ /^\(-?[\w\d\.]+?\)/) or
-			($latexExpr->[$i] =~ /[^\^]\(-?[\w\d\.]+?\)$/)) {
-				if ($debug) { print STDERR "catch all\n"; }
+			#} elsif (($latexExpr->[$i] =~ /^\(-?[\w\d\.]+?\)/) or
+			#($latexExpr->[$i] =~ /[^\^]\(-?[\w\d\.]+?\)$/)) {
+			#	if ($debug) { print STDERR "catch all\n"; }
 
-				$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)/$1/g;
+			#	$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)/$1/g;
 			}
 
 		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) {
