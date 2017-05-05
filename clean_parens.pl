@@ -50,13 +50,13 @@ sub cleanParens {
 	if ($debug) { print STDERR "removed parens: $expr\n"; }
 
 	# ((expr)^(pow)) -> (expr)^(pow)
-	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/($1)$2/g; }
+	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^^]?[\)\}]?)\)/($1)$2/g; }
 
 	# remove parens around multiplication section: a*(a^b)*c -> a*a^b*c
-	$expr =~ s/^[^\^]\((-?[\w\^\*\(\)]+)\)\*/$1*/g;
+	$expr =~ s/^[^^]\((-?[\w\^\*\(\)]+)\)\*/$1*/g;
 	$expr =~ s/\*\((-?[\w\^\*\(\)]+)\)\*/*$1*/g;
 	$expr =~ s/\*\((-?[\w\^\*\(\)]+)\)$/*$1/g;
-	$expr =~ s/^[^\^]\(([\w\^\*\(\)]+)\)\*/$1*/g;
+	$expr =~ s/^[^^]\(([\w\^\*\(\)]+)\)\*/$1*/g;
 	$expr =~ s/([\+\-])\(([\w\^\*\(\)]+)\)\*/$1$2*/g;
 
 	$expr = &cleanFractions($expr, $debug);
@@ -148,10 +148,10 @@ sub cleanSingleParens {
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
 				$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
 
-			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
-				if ($debug) { print STDERR "base paren removal\n"; }
+			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^?/) {
+				if ($debug) { print STDERR "possible base paren removal\n"; }
 
-				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
+				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)(\^?)/$1$2/g;
 			}
 
 		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) {
@@ -178,14 +178,14 @@ sub cleanSingleParens {
 			my $func_arg = &removeOuterParens($f_arg, $debug);
 
 			if ($f_arg ne $func_arg) {
-				$func_arg =~ s/([\*\^\/\+\-])\((.)\)/$1$2/g;
+				$func_arg =~ s/([\*^\/\+\-])\((.)\)/$1$2/g;
 				$func_arg =~ s/\((.!)\)/$1/g;
 
 				# factorials, exponents, and expressions containing powers
 				if (($func_arg !~ /[\^\-]\(.{2,}\)/) and
 				($func_arg !~ /\(.{2,}\)\^/)) {
 					$func_arg =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
-					$func_arg =~ s/([\*\^\/\+\-])\((-?[\w\*]+)\)/$1$2/g;
+					$func_arg =~ s/([\*^\/\+\-])\((-?[\w\*]+)\)/$1$2/g;
 
 				# numbers
 				} elsif ($func_arg =~ /\(-?\d*\.?\d+\)\^/) {
@@ -528,7 +528,7 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if ($expr =~ /[^_]\(.*?(\)\*?\().*?\)[^^]/) {
+	if ($expr =~ /[^^_]\(.*?(\)\*?\().*?\)[^^]/) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
