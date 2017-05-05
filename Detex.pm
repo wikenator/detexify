@@ -547,7 +547,8 @@ sub collapse {
 		# add addition sign into mixed fractions
 		if (($latexChar2 eq '\frac') and
 		($latexChar1 =~ /\d*\.?\d+$/)) {
-			if ($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) {
+			if (($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) or
+			($latexChar2 =~ /^\\frac/)) {
 				$latexExpr->[$i] = $latexChar1 . '+';
 
 			# otherwise add multiplication sign to scalar multiple
@@ -827,6 +828,15 @@ sub collapse {
 			if ($debug) { print "combine: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 eq '(') and
+		($latexChar3 eq ')')) {
+			$fragment = "($latexChar2)";
+
+			if ($debug) { print "sandwiching: $fragment\n"; }
+
+			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 		}
 	
