@@ -843,7 +843,7 @@ sub collapse {
 			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 
-		} elsif (($latexChar1 =~ /\)$/) and
+		} elsif (($latexChar1 =~ /[\*\)]$/) and
 		($latexChar2 =~ /^[\w\d]+$/)) {
 			$fragment = $latexChar1 . $latexChar2;
 
