@@ -238,7 +238,7 @@ sub detexify {
 	if ($firstPass) {
 		$firstPass = 0;
 
-		if (((scalar @$latexExpr) == 1) and ($latexExpr->[$i] =~ /($search_terms)/)) {
+		if (((scalar @$latexExpr) == 1) and ($latexExpr->[$i] =~ /(\Q$search_terms\E)/)) {
 			$initialString = $latexExpr->[0];
 			$latexExpr = &latexplosion(@$latexExpr, $debug);
 		}
@@ -305,7 +305,7 @@ sub detexify {
 
 			&collapse($latexExpr);
 
-		} elsif ($latexChar =~ /($search_terms)/) {
+		} elsif ($latexChar =~ /(\Q$search_terms\E)/) {
 			if ($debug) { print "other latex tag\n"; }
 
 			my ($tag_arg, $left_delim, $right_delim);
@@ -522,7 +522,7 @@ sub collapse {
 			print Dumper($latexExpr);
 			print "char1: $latexChar1\tchar2: $latexChar2\n";
 			
-			if ($latexChar2 !~ /($search_terms)/) { print "not a tag\n"; }
+			if ($latexChar2 !~ /(\Q$search_terms\E)/) { print "not a tag\n"; }
 			else { print "it's a tag\n"; }
 		}
 				
@@ -559,7 +559,7 @@ sub collapse {
 			$latexChar1 = $latexExpr->[$i];
 		}
 
-		if (($latexChar1 =~ /($search_terms)(\^\(?[\w\d]+\)?)?/) and
+		if (($latexChar1 =~ /(\Q$search_terms\E)(\^\(?[\w\d]+\)?)?/) and
 		($latexChar2 eq '(') and
 		($latexChar4 eq ')')) {
 			if ($debug) { print STDERR "function with simple arg\n"; }
@@ -569,11 +569,11 @@ sub collapse {
 
 			$i = -1;
 
-		} elsif (($latexChar1 !~ /($search_terms)/) and
+		} elsif (($latexChar1 !~ /(\Q$search_terms\E)/) and
 		not(grep(/(\Q$latexChar1\E)/, @latexSplit)) and
 		(($latexChar2 eq '+') or 
 		($latexChar2 eq '-')) and
-		($latexChar3 !~ /($search_terms)/)) {
+		($latexChar3 !~ /(\Q$search_terms\E)/)) {
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
 
 			if ($debug) { print STDERR "combining additive items: $fragment\n"; }
@@ -632,7 +632,7 @@ sub collapse {
 				splice @$latexExpr, $i, 7, $fragment;
 				$i = -1;
 
-			} elsif (($latexChar1 !~ /($search_terms)/) and
+			} elsif (($latexChar1 !~ /(\Q$search_terms\E)/) and
 			not(grep(/(\Q$latexChar1\E)/, @latexSplit))) {
 				# create '#()' fragment
 				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
@@ -722,9 +722,9 @@ sub collapse {
 			}
 
 		} elsif (($latexChar1 eq '^') and
-		($latexChar2 !~ /($search_terms)/) and
+		($latexChar2 !~ /(\Q$search_terms\E)/) and
 		(not(grep(/(\Q$latexChar2\E)/, @latexSplit))) and
-		($latexExpr->[$i-1] !~ /($search_terms)/)) {
+		($latexExpr->[$i-1] !~ /(\Q$search_terms\E)/)) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
 				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
@@ -805,8 +805,8 @@ sub collapse {
 			$i = -1;
 
 		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexSplit) or
-		($latexChar2 =~ /($search_terms)/) or
-		($latexChar1 =~ /($search_terms)/) or
+		($latexChar2 =~ /(\Q$search_terms\E)/) or
+		($latexChar1 =~ /(\Q$search_terms\E)/) or
 		grep(/(\Q$latexChar2\E)/, @latexSplit)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
