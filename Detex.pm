@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 100;
+my $maxIter = 50;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
@@ -35,6 +35,9 @@ my @latexTag;
 	no warnings 'qw';
 	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
 }
+
+our $search_terms = join("|", @latexTag);
+$search_terms =~ s/\\/\\\\/g;
 
 ### Detex: remove latex tags from expressions #################################
 sub detex {
@@ -226,9 +229,6 @@ sub detexify {
 	my $subExpr;
 	my $subString;
 	my $initialString = $latexExpr;
-	my $search_terms = join("|", @latexTag);
-
-	$search_terms =~ s/\\/\\\\/g;
 
 	if ($debug) {
 		print "Entering detexify: ";
@@ -305,7 +305,7 @@ sub detexify {
 
 			&collapse($latexExpr);
 
-		} elsif (grep(/(\Q$latexChar\E)/, @latexTag)) {
+		} elsif ($latexChar =~ /($search_terms)/) {
 			if ($debug) { print "other latex tag\n"; }
 
 			my ($tag_arg, $left_delim, $right_delim);
@@ -522,7 +522,7 @@ sub collapse {
 			print Dumper($latexExpr);
 			print "char1: $latexChar1\tchar2: $latexChar2\n";
 			
-			if (not(grep(/(\Q$latexChar2\E)/, @latexTag))) { print "not a tag\n"; }
+			if ($latexChar2 !~ /($search_terms)/) { print "not a tag\n"; }
 			else { print "it's a tag\n"; }
 		}
 				
@@ -559,7 +559,7 @@ sub collapse {
 			$latexChar1 = $latexExpr->[$i];
 		}
 
-		if (grep(/(\Q$latexChar1\E)/, @latexTag) and
+		if (($latexChar1 =~ /($search_terms)(\^\(?[\w\d]+\)?)?/) and
 		($latexChar2 eq '(') and
 		($latexChar4 eq ')')) {
 			if ($debug) { print STDERR "function with simple arg\n"; }
@@ -569,11 +569,11 @@ sub collapse {
 
 			$i = -1;
 
-		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexTag)) and
+		} elsif (($latexChar1 !~ /($search_terms)/) and
 		not(grep(/(\Q$latexChar1\E)/, @latexSplit)) and
 		(($latexChar2 eq '+') or 
 		($latexChar2 eq '-')) and
-		not(grep(/(\Q$latexChar3\E)/, @latexTag))) {
+		($latexChar3 !~ /($search_terms)/)) {
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
 
 			if ($debug) { print STDERR "combining additive items: $fragment\n"; }
@@ -632,7 +632,7 @@ sub collapse {
 				splice @$latexExpr, $i, 7, $fragment;
 				$i = -1;
 
-			} elsif (not(grep(/(\Q$latexChar1\E)/, @latexTag)) and
+			} elsif (($latexChar1 !~ /($search_terms)/) and
 			not(grep(/(\Q$latexChar1\E)/, @latexSplit))) {
 				# create '#()' fragment
 				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
@@ -722,9 +722,9 @@ sub collapse {
 			}
 
 		} elsif (($latexChar1 eq '^') and
-		(not(grep(/(\Q$latexChar2\E)/, @latexTag))) and
+		($latexChar2 !~ /($search_terms)/) and
 		(not(grep(/(\Q$latexChar2\E)/, @latexSplit))) and
-		(not(grep(/(\Q$latexExpr->[$i-1]\E)/, @latexTag)))) {
+		($latexExpr->[$i-1] !~ /($search_terms)/)) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
 				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
@@ -805,7 +805,7 @@ sub collapse {
 			$i = -1;
 
 		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexSplit) or
-		grep(/(\Q$latexChar2\E)/, @latexTag) or
+		($latexChar2 =~ /($search_terms)/) or
 		grep(/(\Q$latexChar1\E)/, @latexTag) or
 		grep(/(\Q$latexChar2\E)/, @latexSplit)) and
 		not($latexChar1 eq '(') and
