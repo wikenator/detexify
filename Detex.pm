@@ -806,7 +806,7 @@ sub collapse {
 
 		} elsif (not(grep(/(\Q$latexChar1\E)/, @latexSplit) or
 		($latexChar2 =~ /($search_terms)/) or
-		grep(/(\Q$latexChar1\E)/, @latexTag) or
+		($latexChar1 =~ /($search_terms)/) or
 		grep(/(\Q$latexChar2\E)/, @latexSplit)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
@@ -841,6 +841,16 @@ sub collapse {
 			if ($debug) { print STDERR "sandwiching: $fragment\n"; }
 
 			splice @$latexExpr, $i, 3, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 eq '(') and
+		$latexChar4 and
+		($latexChar4 eq ')')) {
+			$fragment = "(" . $latexChar2 . $latexChar3 . ")";
+
+			if ($debug) { print STDERR "double-decker sandwich: $fragment\n"; }
+
+			splice @$latexExpr, $i, 4, $fragment;
 			$i = -1;
 
 		} elsif (($latexChar1 =~ /[\*\)]$/) and
