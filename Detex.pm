@@ -688,20 +688,20 @@ sub collapse {
 			if ($debug) { print STDERR Dumper($latexExpr); }
 
 			# simplify square root function to exponent
-			if ($match eq 'f') {
-				$latexExpr->[$i+5] = &injectAsterixes($latexExpr->[$i+5], $debug);
+#			if ($match eq 'f') {
+			$latexExpr->[$i+5] = &injectAsterixes($latexExpr->[$i+5], $debug);
 
-				$latexExpr->[$i+5] = "($latexExpr->[$i+5])";
+			$latexExpr->[$i+5] = "($latexExpr->[$i+5])";
 
-				if ($latexExpr->[$i+5] =~ /^\(([\w\^]+)\)$/) { $latexExpr->[$i+5] = $1; }
+			if ($latexExpr->[$i+5] =~ /^\(([\w\^]+)\)$/) { $latexExpr->[$i+5] = $1; }
 
-				# \sqrt[a]{b} -> (b)^(1/a)
-				$fragment = $latexExpr->[$i+5] . '^(1/' . $latexChar3 . ')';
+			# \sqrt[a]{b} -> (b)^(1/a)
+			$fragment = $latexExpr->[$i+5] . '^(1/' . $latexChar3 . ')';
 
-			} else {
+#			} else {
 				# create '\sqrt[a]{b}' fragment
-				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4 . $latexExpr->[$i+4] . $latexExpr->[$i+5] . $latexExpr->[$i+6]]);
-			}
+#				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4 . $latexExpr->[$i+4] . $latexExpr->[$i+5] . $latexExpr->[$i+6]]);
+#			}
 
 			if ($debug) {
 				print STDERR "sqrt[] frag: $fragment\n";
