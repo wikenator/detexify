@@ -122,12 +122,15 @@ sub cleanParens {
 sub cleanSingleParens {
 	my $expr = shift;
 	my $debug = shift;
-	my $latexExpr = [split(/($search_terms|\+|\-)/, $expr)];
+	my $latexExpr = [split(/($search_terms|\+|\-|\^)/, $expr)];
 
 	$latexExpr = &removeArrayBlanks($latexExpr, $debug);
 	my $arraySize = scalar @$latexExpr;
 
-	if ($debug) { print STDERR "removing single parens\n"; }
+	if ($debug) {
+		print STDERR "removing single parens\n";
+		print STDERR Dumper($latexExpr);
+	}
 
 	for (my $i = 0; $i < $arraySize; $i++) {
 		if (grep(/(\Q$latexExpr->[$i]\E)/, @latexFunc)) {
