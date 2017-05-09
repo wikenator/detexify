@@ -211,7 +211,7 @@ sub detex {
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
 	# final paren removal for negative numbers
-	$detexExpr =~ s/([^\^($search_terms)])\((-\w+)\)([^\^])/$1$2$3/g;
+	$detexExpr =~ s/([^\^(sqrt)])\((-\w+)\)([^\^])/$1$2$3/g;
 	$detexExpr =~ s/^\((-\w+)\)([^\^])/$1$2/;
 
 	if ($debug) { print STDERR "iterations used: $infinite\n"; }
