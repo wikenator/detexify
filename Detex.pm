@@ -614,7 +614,13 @@ sub collapse {
 
 			} elsif ($latexChar1 eq '^') {
 				# create '^{a}', '[]', or '()' fragment
-				$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
+				if (length($latexChar3) == 1) {
+					$fragment = $latexChar1 . $latexChar3;
+
+				} else {
+					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
+				}
+
 				$fragment =~ s/^\\+(.*)$/$1/;
 				
 				if ($debug) { print STDERR "bracket frag: $fragment\n"; }
