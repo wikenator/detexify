@@ -122,7 +122,7 @@ sub cleanParens {
 sub cleanSingleParens {
 	my $expr = shift;
 	my $debug = shift;
-	my $latexExpr = [split(/($search_terms|\+|\-|\^)/, $expr)];
+	my $latexExpr = [split(/($search_terms|\+|\-)/, $expr)];
 
 	$latexExpr = &removeArrayBlanks($latexExpr, $debug);
 	my $arraySize = scalar @$latexExpr;
