@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 50;
+my $maxIter = 20;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
@@ -211,7 +211,7 @@ sub detex {
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
 	# final paren removal for negative numbers
-	$detexExpr =~ s/([^\^(sqrt)])\((-\w+)\)([^\^])/$1$2$3/g;
+	$detexExpr =~ s/((?<!\^)(?<!sqrt))\((-\w+)\)([^\^])/$1$2$3/g;
 	$detexExpr =~ s/^\((-\w+)\)([^\^])/$1$2/;
 
 	if ($debug) { print STDERR "iterations used: $infinite\n"; }
