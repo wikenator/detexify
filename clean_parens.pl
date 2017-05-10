@@ -43,7 +43,7 @@ sub cleanParens {
 	$expr = &removeOuterParens($expr, $debug);
 
 	# remove parentheses around single pi
-	if ($expr !~ /($search_terms)\(pi\)/) {
+	if ($expr !~ /($search_terms)(\^[\{\(]?\d[\}\)]?)?\(pi\)/) {
 		$expr =~ s/([^\}\)])\((pi)\)/$1$2/g;
 	}
 
@@ -283,7 +283,7 @@ sub cleanFractions {
 
 			if (($latexExpr->[$i] eq '(') and
 			((not(grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) and 
-			($latexExpr->[$i-1] !~ /($search_terms)$/) and
+			($latexExpr->[$i-1] !~ /($search_terms)(\^[\{\(]?\d+[\}\)]?)?$/) and
 			($latexExpr->[$i-1] !~ /\^$/)) or
 			($i == 0))) {
 				my $delim_count = 1;
@@ -307,6 +307,10 @@ sub cleanFractions {
 
 				if (($j+1 < $arraySize) and
 				($latexExpr->[$j+1] ne '/')) {
+					if ($debug) {
+						print STDERR "combining everything\n";
+					}
+
 					splice @$latexExpr, $i, $j-$i+1, $latexExpr->[$i] . $subNumerExpr . $latexExpr->[$j];
 
 					$arraySize = scalar @$latexExpr;
