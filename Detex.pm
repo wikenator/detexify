@@ -574,6 +574,18 @@ sub collapse {
 
 			$i = -1;
 
+		} elsif (($latexChar1 =~ /^($search_terms)$/) and
+		($latexChar2 =~ /^\^/) and
+		($latexChar3 eq '(') and
+		$latexExpr->[$i+4] and
+		($latexExpr->[$i+4] eq ')')) {
+			if ($debug) { print STDERR "power of a function\n"; }
+
+			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
+			splice @$latexExpr, $i, 5, $fragment;
+			
+			$i = -1;
+
 		} elsif (($latexChar1 !~ /^($search_terms)$/) and
 		($latexChar1 !~ /^($search_items)$/) and
 		(($latexChar2 eq '+') or 
