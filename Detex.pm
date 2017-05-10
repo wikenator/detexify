@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 20;
+my $maxIter = 40;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
@@ -583,6 +583,15 @@ sub collapse {
 
 			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
 			splice @$latexExpr, $i, 5, $fragment;
+
+			$i = -1;
+
+		} elsif (($latexChar1 =~ /^($search_terms)$/) and
+		($latexChar2 =~ /^\^\d$/)) {
+			if ($debug) { print STDERR "function power\n"; }
+
+			$fragment = $latexChar1 . $latexChar2;
+			splice @$latexExpr, $i, 2, $fragment;
 			
 			$i = -1;
 
