@@ -878,6 +878,11 @@ sub collapse {
 		} elsif (($latexChar1 eq '(') and
 		$latexChar4 and
 		($latexChar4 eq ')')) {
+			if (($latexChar2 !~ /[\+\-\/\*]$/) and
+			($latexChar3 !~ /^[\+\-\/\*]/)) {
+				$latexChar2 .= '*';
+			}
+
 			$fragment = "(" . $latexChar2 . $latexChar3 . ")";
 
 			if ($debug) { print STDERR "double-decker sandwich: $fragment\n"; }
