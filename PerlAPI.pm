@@ -225,7 +225,7 @@ sub injectAsterixes {
 	# fix split for abs
 	$expr =~ s/a\*b\*s\*?\(/abs\(/g;
 	# fix split for emptyset
-	$expr =~ s/#e\*m\*p\*t\*y\*s\*e\*t/emptyset/g;
+	$expr =~ s/#e\*m\*p\*t\*y\*#?s\*e\*t/emptyset/g;
 	# fix split for infinity
 	$expr =~ s/i\*n\*f/inf/g;
 
