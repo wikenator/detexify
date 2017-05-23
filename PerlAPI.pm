@@ -228,6 +228,8 @@ sub injectAsterixes {
 	$expr =~ s/#e\*m\*p\*t\*y\*#?s\*e\*t/emptyset/g;
 	# fix split for infinity
 	$expr =~ s/i\*n\*f/inf/g;
+	# fix split for null
+	$expr =~ s/n\*u\*l\*l/null/g;
 
 	if ($debug) { print STDERR "during ab->a*b 2: $expr\n"; }
 
