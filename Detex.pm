@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 40;
+my $maxIter = 80;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
@@ -620,7 +620,7 @@ sub collapse {
 
 					$latexChar3 = "($latexChar3)";
 
-					if ($latexChar3 =~ /^\(([\w\^]+)\)$/) { $latexChar3 = $1; }
+					if ($latexChar3 =~ /^\((\w)\)$/) { $latexChar3 = $1; }
 
 					# \sqrt{a} -> (a)^(1/2)
 					$fragment = $latexChar3 . '^(1/2)';
@@ -721,7 +721,7 @@ sub collapse {
 
 			$latexExpr->[$i+5] = "($latexExpr->[$i+5])";
 
-			if ($latexExpr->[$i+5] =~ /^\(([\w\^]+)\)$/) { $latexExpr->[$i+5] = $1; }
+			if ($latexExpr->[$i+5] =~ /^\((\w)\)$/) { $latexExpr->[$i+5] = $1; }
 
 			# \sqrt[a]{b} -> (b)^(1/a)
 			$fragment = $latexExpr->[$i+5] . '^(1/' . $latexChar3 . ')';
