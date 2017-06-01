@@ -404,9 +404,10 @@ sub detexify {
 						$subString .= $latexExpr->[$k];
 
 					} elsif (($delim_count == 0) and
-					($latexExpr->[$k-1] ne $right_delim) and
-					($latexExpr->[$k] eq $right_delim) and
-					($subString =~ /^\Q$left_delim\E/)) {
+#					($latexExpr->[$k-1] ne $right_delim) and
+#					($latexExpr->[$k] eq $right_delim) and
+#					($subString =~ /^\Q$left_delim\E/) and
+					(($subString =~ tr/\(//)+1 == ($subString =~ tr/\)//))) {
 						$subString .= $latexExpr->[$k];
 						$k++;
 						last;
