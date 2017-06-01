@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 100;
+my $maxIter = 40;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
@@ -35,6 +35,10 @@ my @latexTag;
 	no warnings 'qw';
 	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
 }
+
+my $search_items = join("|", @latexSplit);
+my $search_terms = join("|", @latexTag);
+$search_terms =~ s/\\/\\\\/g;
 
 ### Detex: remove latex tags from expressions #################################
 sub detex {
@@ -56,7 +60,7 @@ sub detex {
 	$latexExpr =~ s/^(.*?):(.*?)$/($1)\/($2)/g;	# replace : (ratio) with / (division)
 	$latexExpr =~ s/^(.*?):(.*?)$/$1)\/($2/g;	# replace : (ratio) with / (division)
 
-	if ($debug) { print "even tags start: $latexExpr\n"; }
+	if ($debug) { print STDERR "even tags start: $latexExpr\n"; }
 
 	# make sure tags are even
 	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0) {
@@ -69,7 +73,7 @@ sub detex {
 		return 0;
 	}
 
-	if ($debug) { print "even tags end: $latexExpr\n"; }
+	if ($debug) { print STDERR "even tags end: $latexExpr\n"; }
 
 	$latexExpr =~ s/(\-)?\\infty/$1inf/g;	# replace \infty with inf
 	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g;# replace .# with 0.#
@@ -139,15 +143,15 @@ sub detex {
 	$latexExpr =~ s/\\emptyset/#emptyset/g;	# escape emptyset tag
 	$latexExpr =~ s/\\operatorname\{(.*?)\}/$1/g;	# remove operatorname
 
-	if ($latexExpr =~ /\\?((a)(rc)?)?(cos|sin|tan|csc|sec|cot)[^A-Za-z]/) {
-		$latexExpr =~ s/\\?(((a)(rc)?)?)(cos|sin|tan|csc|sec|cot)/#$1$5/g;# escape atrig tag
+	if ($latexExpr =~ /\\?((a)(rc)?)?(cos|sin|tan|csc|sec|cot)(h)?[^A-Za-z]/) {
+		$latexExpr =~ s/\\?(((a)(rc)?)?)(cos|sin|tan|csc|sec|cot)/#$1$5$6/g;# escape atrig tag
 	}
 
-	$latexExpr =~ s/#arc(cos|sin|tan|csc|sec|cot)/#a$1/g;
+	$latexExpr =~ s/#arc(cos|sin|tan|csc|sec|cot)/#a$1$2/g;
 	$latexExpr =~ s/\\?sqrt/\\sqrt/g;	# escape sqrt tag
 	$latexExpr =~ s/exp/e\^/g;		# replace exp function with e
 
-	if ($debug) { print "ready: $latexExpr\n"; }
+	if ($debug) { print STDERR "ready: $latexExpr\n"; }
 
 	my $strPos = 0;
 	my @fragment;
@@ -164,7 +168,7 @@ sub detex {
 			# quit if detex does not finish before 50 iterations
 			if (++$infinite > $maxIter) { return $subExpr->[0]; }
 		
-			if ($debug) { print Dumper($subExpr); }
+			if ($debug) { print STDERR Dumper($subExpr); }
 		}
 
 		# collapse remaining 2 or 3 subexpression entries
@@ -177,7 +181,7 @@ sub detex {
 			splice @$subExpr, 0, 2, $fragment;
 		}
 
-		if ($debug) { print "\nFinal Detex\n"; }
+		if ($debug) { print STDERR "\nFinal Detex\n"; }
 	
 		# final detexify
 		$detexExpr = &detexify($subExpr);
@@ -189,8 +193,8 @@ sub detex {
 		### tag: KEEP{}
 		#$detexExpr =~ s/{/(/g;	# replace curly braces with parentheses
 		#$detexExpr =~ s/}/)/g;	# replace curly braces with parentheses
-		if ($detexExpr =~ /[^_^]\{.*?\}/) {
-			$detexExpr =~ s/([^_^])\{(.*?)\}/$1($2)/g;
+		if ($detexExpr =~ /[^_\^]\{.*?\}/) {
+			$detexExpr =~ s/([^_\^])\{(.*?)\}/$1($2)/g;
 		}
 
 		# replace -1 exponent with arc equivalent
@@ -207,8 +211,10 @@ sub detex {
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
 	# final paren removal for negative numbers
-	$detexExpr =~ s/([^^])\((-\w+)\)([^^])/$1$2$3/g;
-	$detexExpr =~ s/^\((-\w+)\)([^^])/$1$2/;
+	$detexExpr =~ s/((?<!\^)(?<!sqrt))\((-\w+)\)([^\^])/$1$2$3/g;
+	$detexExpr =~ s/^\((-\w+)\)([^\^])/$1$2/;
+
+	if ($debug) { print STDERR "iterations used: $infinite\n"; }
 
 	return $detexExpr;
 }
@@ -226,13 +232,10 @@ sub detexify {
 	my $subExpr;
 	my $subString;
 	my $initialString = $latexExpr;
-	my $search_terms = join("|", @latexTag);
-
-	$search_terms =~ s/\\/\\\\/g;
 
 	if ($debug) {
-		print "Entering detexify: ";
-		print Dumper($latexExpr);
+		print STDERR "Entering detexify: ";
+		print STDERR Dumper($latexExpr);
 	}
 
 	if ($firstPass) {
@@ -250,10 +253,10 @@ sub detexify {
 	while ($i < (scalar @$latexExpr)) {
 		$latexChar = $latexExpr->[$i];
 
-		if ($debug) { print "latexChar detex: $latexChar\n"; }
+		if ($debug) { print STDERR "latexChar detex: $latexChar\n"; }
 
 		if ($latexChar eq '\frac') {
-			if ($debug) { print "frac section\n"; }
+			if ($debug) { print STDERR "frac section\n"; }
 
 			my ($numer, $denom, $n1, $n2, $d1, $d2);
 			$subString = '';
@@ -274,7 +277,7 @@ sub detexify {
 			$firstPass = 1;
 			$numer = &detexify([$subString]);
 			
-			if ($debug) { print "\nnumer: $numer\n"; }
+			if ($debug) { print STDERR "\nnumer: $numer\n"; }
 
 			$n2 = $j;
 			$j += 2;
@@ -295,18 +298,18 @@ sub detexify {
 			$firstPass = 1;
 			$denom = &detexify([$subString]);
 
-			if ($debug) { print "\ndenom: $denom\n"; }
+			if ($debug) { print STDERR "\ndenom: $denom\n"; }
 
 			$d2 = $j;
 			splice @$latexExpr, $d1, $d2-$d1, $denom;
 			splice @$latexExpr, $n1, $n2-$n1, $numer;
 
-			if ($debug) { print Dumper($latexExpr); }
+			if ($debug) { print STDERR Dumper($latexExpr); }
 
 			&collapse($latexExpr);
 
-		} elsif (grep(/\Q$latexChar\E/, @latexTag)) {
-			if ($debug) { print "other latex tag\n"; }
+		} elsif ($latexChar =~ /^($search_terms)$/) {
+			if ($debug) { print STDERR "other latex tag\n"; }
 
 			my ($tag_arg, $left_delim, $right_delim);
 			my $offset = 0;
@@ -316,7 +319,7 @@ sub detexify {
 			$j = $i+2;
 
 			if ($latexChar eq '\sqrt') {
-				if ($debug) { print "sqrt section\n"; }
+				if ($debug) { print STDERR "sqrt section\n"; }
 
 				$sqrt_section = 1;
 
@@ -372,7 +375,7 @@ sub detexify {
 				$delim_count = 1;
 
 			} else {
-				if ($debug) { print "paren delimiters\n"; }
+				if ($debug) { print STDERR "paren delimiters\n"; }
 
 				$left_delim = '(';
 				$right_delim = ')';
@@ -401,9 +404,10 @@ sub detexify {
 						$subString .= $latexExpr->[$k];
 
 					} elsif (($delim_count == 0) and
-					($latexExpr->[$k-1] ne $right_delim) and
-					($latexExpr->[$k] eq $right_delim) and
-					($subString =~ /^\Q$left_delim\E/)) {
+#					($latexExpr->[$k-1] ne $right_delim) and
+#					($latexExpr->[$k] eq $right_delim) and
+#					($subString =~ /^\Q$left_delim\E/) and
+					(($subString =~ tr/\(//)+1 == ($subString =~ tr/\)//))) {
 						$subString .= $latexExpr->[$k];
 						$k++;
 						last;
@@ -414,13 +418,13 @@ sub detexify {
 
 					# quit if detexify does not finish before 50 iterations
 					if (++$infinite > $maxIter) {
-						if ($debug) { print "stuck in delim hell\n"; }
+						if ($debug) { print STDERR "stuck in delim hell\n"; }
 
 						return $latexExpr->[0];
 					}
 				}
 
-				if ($debug) { print "substring: $subString\n"; }
+				if ($debug) { print STDERR "substring: $subString\n"; }
 
 				$firstPass = 1;
 				$tag_arg = &detexify([$subString]);
@@ -428,7 +432,7 @@ sub detexify {
 				$tag_arg =~ s/\{/\(/g;
 				$tag_arg =~ s/\}/\)/g;
 
-				if ($debug) { print "\ntag arg: $tag_arg\n"; }
+				if ($debug) { print STDERR "\ntag arg: $tag_arg\n"; }
 
 			} else {
 				$tag_arg = $subString;
@@ -440,12 +444,12 @@ sub detexify {
 				$latexExpr->[$k] = '}';
 
 				if ($k-$j > 1) {
-					if ($debug) { print "IDX -- i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
+					if ($debug) { print STDERR "IDX -- i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
 
 					$latexExpr->[$i] = '{';
 					$j++;
 
-					if ($debug) { print "IDX -- size: " . ($j-$i-$offset) . ", i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
+					if ($debug) { print STDERR "IDX -- size: " . ($j-$i-$offset) . ", i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
 
 					splice @$latexExpr, $i+$offset, $k-$i-$offset, $tag_arg;
 
@@ -453,7 +457,7 @@ sub detexify {
 					$latexExpr->[$i+$offset-1] = '{';
 					$j++;
 	
-					if ($debug) { print "IDX 2 -- size: " . ($j-$i-$offset) . ", i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
+					if ($debug) { print STDERR "IDX 2 -- size: " . ($j-$i-$offset) . ", i: $i $latexExpr->[$i], j: $j $latexExpr->[$j], k: $k $latexExpr->[$k]\n"; }
 
 					splice @$latexExpr, $i+$offset, $j-$i-$offset, $tag_arg;
 				}
@@ -464,7 +468,7 @@ sub detexify {
 
 			&collapse($latexExpr);
 
-			if ($debug) { print "after match check: $latexExpr->[$i]\n"; }
+			if ($debug) { print STDERR "after match check: $latexExpr->[$i]\n"; }
 		}
 			
 		$i++;
@@ -508,8 +512,8 @@ sub collapse {
 	my $fragment = '';
 
 	if ($debug) {
-		print "Collapsing\n";
-		print Dumper($latexExpr);
+		print STDERR "Collapsing\n";
+		print STDERR Dumper($latexExpr);
 	}
 
 	while ($i < (scalar @$latexExpr)-1) {
@@ -519,11 +523,11 @@ sub collapse {
 		$latexChar4 = $latexExpr->[$i+3];
 
 		if ($debug) {
-			print Dumper($latexExpr);
-			print "char1: $latexChar1\tchar2: $latexChar2\n";
+			print STDERR Dumper($latexExpr);
+			print STDERR "char1: $latexChar1\tchar2: $latexChar2\n";
 			
-			if (not(grep(/\Q($latexChar2)\E/, @latexTag))) { print "not a tag\n"; }
-			else { print "it's a tag\n"; }
+			if ($latexChar2 !~ /^($search_terms)$/) { print STDERR "not a tag\n"; }
+			else { print STDERR "it's a tag\n"; }
 		}
 				
 		if (($latexChar2 eq '\sqrt') and
@@ -556,10 +560,12 @@ sub collapse {
 				$latexExpr->[$i] = $latexChar1 . '*';
 			}
 
+			if ($debug) { print STDERR "mixed fractions: $latexExpr->[$i]\n"; }
+
 			$latexChar1 = $latexExpr->[$i];
 		}
 
-		if (grep(/\Q$latexChar1\E/, @latexTag) and
+		if (($latexChar1 =~ /($search_terms)(\^\(?[\w\d]+\)?)?/) and
 		($latexChar2 eq '(') and
 		($latexChar4 eq ')')) {
 			if ($debug) { print STDERR "function with simple arg\n"; }
@@ -569,18 +575,43 @@ sub collapse {
 
 			$i = -1;
 
-		} elsif (not(grep(/\Q$latexChar1\E/, @latexTag)) and
+		} elsif (($latexChar1 =~ /^($search_terms)$/) and
+		($latexChar2 =~ /^\^/) and
+		($latexChar3 eq '(') and
+		$latexExpr->[$i+4] and
+		($latexExpr->[$i+4] eq ')')) {
+			if ($debug) { print STDERR "power of a function\n"; }
+
+			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
+			splice @$latexExpr, $i, 5, $fragment;
+
+			$i = -1;
+
+		} elsif (($latexChar1 =~ /^($search_terms)$/) and
+		($latexChar2 =~ /^\^\d$/)) {
+			if ($debug) { print STDERR "function power\n"; }
+
+			$fragment = $latexChar1 . $latexChar2;
+			splice @$latexExpr, $i, 2, $fragment;
+			
+			$i = -1;
+
+		} elsif (($latexChar1 !~ /^($search_terms)$/) and
+		($latexChar1 !~ /^($search_items)$/) and
 		(($latexChar2 eq '+') or 
 		($latexChar2 eq '-')) and
-		not(grep(/\Q$latexChar3\E/, @latexTag))) {
+		($latexChar3 !~ /^($search_terms)$/)) {
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
+
+			if ($debug) { print STDERR "combining additive items: $fragment\n"; }
+
 			splice @$latexExpr, $i, 3, $fragment;
 			
 			$i = -1;
 
 		} elsif (($latexChar2 eq '{') and
 		($latexChar4 eq '}')) {
-			if ($debug) { print "part two\n"; }
+			if ($debug) { print STDERR "part two\n"; }
 
 			if ($latexChar1 eq '\sqrt') {
 				# create '\sqrt{a}' fragment
@@ -598,17 +629,23 @@ sub collapse {
 					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
 				}
 
-				if ($debug) { print "sqrt frag: $fragment\n"; }
+				if ($debug) { print STDERR "sqrt frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 4, $fragment;
 				$i = -1;
 
 			} elsif ($latexChar1 eq '^') {
 				# create '^{a}', '[]', or '()' fragment
-				$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
+				if (length($latexChar3) == 1) {
+					$fragment = $latexChar1 . $latexChar3;
+
+				} else {
+					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
+				}
+
 				$fragment =~ s/^\\+(.*)$/$1/;
 				
-				if ($debug) { print "bracket frag: $fragment\n"; }
+				if ($debug) { print STDERR "bracket frag: $fragment\n"; }
 
 				$fragment = &detexify([$fragment]);
 
@@ -623,17 +660,17 @@ sub collapse {
 
 				$fragment = '(' . $latexChar3 . ')/(' . $latexExpr->[$i+5] . ')';
 
-				if ($debug) { print "frac frag: $fragment\n"; }
+				if ($debug) { print STDERR "frac frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 7, $fragment;
 				$i = -1;
 
-			} elsif (not(grep(/\Q$latexChar1\E/, @latexTag)) and
-			not(grep(/\Q$latexChar1\E/, @latexSplit))) {
+			} elsif (($latexChar1 !~ /^($search_terms)$/) and
+			($latexChar1 !~ /^($search_items)$/)) {
 				# create '#()' fragment
 				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
 	
-				if ($debug) { print "#() frag: $fragment\n"; }
+				if ($debug) { print STDERR "#() frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 4, $fragment;
 				$i = -1;
@@ -644,7 +681,7 @@ sub collapse {
 				# create '()' fragment
 				$fragment = &detexify(["(" . $latexChar3 . ")"]);
 
-				if ($debug) { print "() frag: $fragment\n"; }
+				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
 				splice @$latexExpr, $i+1, 3, $fragment;
 				$i = -1; 
@@ -654,7 +691,7 @@ sub collapse {
 		($latexChar2 eq "[") and
 		($latexChar4 eq "]") and
 		($latexExpr->[$i+4] eq "{")) {
-			if ($debug) { print "part three\n"; }
+			if ($debug) { print STDERR "part three\n"; }
 
 			my $inner_arg = $latexExpr->[$i+5];
 			my $delims = 1;
@@ -672,31 +709,31 @@ sub collapse {
 
 			$inner_arg = &detexify([$inner_arg], $debug);
 
-			if ($debug) { print "inner arg: $inner_arg\n"; }
+			if ($debug) { print STDERR "inner arg: $inner_arg\n"; }
 
 			splice @$latexExpr, $i+5, $k-$i-5, $inner_arg;
 
-			if ($debug) { print Dumper($latexExpr); }
+			if ($debug) { print STDERR Dumper($latexExpr); }
 
 			# simplify square root function to exponent
-			if ($match eq 'f') {
-				$latexExpr->[$i+5] = &injectAsterixes($latexExpr->[$i+5], $debug);
+#			if ($match eq 'f') {
+			$latexExpr->[$i+5] = &injectAsterixes($latexExpr->[$i+5], $debug);
 
-				$latexExpr->[$i+5] = "($latexExpr->[$i+5])";
+			$latexExpr->[$i+5] = "($latexExpr->[$i+5])";
 
-				if ($latexExpr->[$i+5] =~ /^\(([\w\^]+)\)$/) { $latexExpr->[$i+5] = $1; }
+			if ($latexExpr->[$i+5] =~ /^\(([\w\^]+)\)$/) { $latexExpr->[$i+5] = $1; }
 
-				# \sqrt[a]{b} -> (b)^(1/a)
-				$fragment = $latexExpr->[$i+5] . '^(1/' . $latexChar3 . ')';
+			# \sqrt[a]{b} -> (b)^(1/a)
+			$fragment = $latexExpr->[$i+5] . '^(1/' . $latexChar3 . ')';
 
-			} else {
+#			} else {
 				# create '\sqrt[a]{b}' fragment
-				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4 . $latexExpr->[$i+4] . $latexExpr->[$i+5] . $latexExpr->[$i+6]]);
-			}
+#				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4 . $latexExpr->[$i+4] . $latexExpr->[$i+5] . $latexExpr->[$i+6]]);
+#			}
 
 			if ($debug) {
-				print "sqrt[] frag: $fragment\n";
-				print "after match check: $latexExpr->[$i]\n";
+				print STDERR "sqrt[] frag: $fragment\n";
+				print STDERR "after match check: $latexExpr->[$i]\n";
 			}
 
 			splice @$latexExpr, $i, 7, $fragment;
@@ -711,21 +748,21 @@ sub collapse {
 				# create '()' fragment
 				$fragment = &detexify(["($latexChar2)"]);
 				
-				if ($debug) { print "() frag: $fragment\n"; }
+				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
 				splice (@$latexExpr, $i, 3, $fragment);
 				$i = -1;
 			}
 
 		} elsif (($latexChar1 eq '^') and
-		(not(grep(/\Q$latexChar2\E/, @latexTag))) and
-		(not(grep(/\Q$latexChar2\E/, @latexSplit))) and
-		(not(grep(/\Q$latexExpr->[$i-1]\E/, @latexTag)))) {
+		($latexChar2 !~ /^($search_terms)$/) and
+		($latexChar2 !~ /^($search_items)$/) and
+		($latexExpr->[$i-1] !~ /^($search_terms)$/)) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
 				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
 			
-				if ($debug) { print "^a fragment: $fragment\n"; }
+				if ($debug) { print STDERR "^a fragment: $fragment\n"; }
 
 				splice (@$latexExpr, $i, 2, $fragment);
 
@@ -734,7 +771,7 @@ sub collapse {
 			($latexChar4 eq ')')) {
 				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4]);
 
-				if ($debug) { print "^(a) fragment: $fragment\n"; }
+				if ($debug) { print STDERR "^(a) fragment: $fragment\n"; }
 
 				splice (@$latexExpr, $i, 4, $fragment);
 			}
@@ -746,7 +783,7 @@ sub collapse {
 			#create 'a^b' fragment
 			$fragment = &detexify([$latexChar1 . $latexChar2]);
 
-			if ($debug) { print "a^b frag: $fragment\n"; }
+			if ($debug) { print STDERR "a^b frag: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
@@ -756,7 +793,7 @@ sub collapse {
 			# create ^a fragment
 			$fragment = &detexify([$latexChar1 . $latexChar2]);
 
-			if ($debug) { print "split a^b frag: $fragment\n"; }
+			if ($debug) { print STDERR "split a^b frag: $fragment\n"; }
 			
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
@@ -768,7 +805,7 @@ sub collapse {
 			# create a^b fragment
 			$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4]);
 			
-			if ($debug) { print "{a}^b frag: $fragment\n"; }
+			if ($debug) { print STDERR "{a}^b frag: $fragment\n"; }
 
 			splice @$latexExpr, $i, 4, $fragment;
 			$i = -1;
@@ -776,7 +813,7 @@ sub collapse {
 		} elsif (($latexChar1 eq '{') and
 		$latexChar4 and
 		($latexChar4 eq '}')) {
-			if ($debug) { print "a, b => ab: $fragment\n"; }
+			if ($debug) { print STDERR "a, b => ab: $fragment\n"; }
 
 			# "{, a, b, }" => "{a*b}"
 			if (($latexChar2 =~ /\d$/) and
@@ -795,15 +832,15 @@ sub collapse {
 		($latexChar3 eq ']')) {
 			$fragment = "($latexChar2)";
 
-			if ($debug) { print "[] => (): $fragment\n"; }
+			if ($debug) { print STDERR "[] => (): $fragment\n"; }
 
 			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 
-		} elsif (not(grep(/\Q$latexChar1\E/, @latexSplit) or
-		grep(/\Q$latexChar2\E/, @latexTag) or
-		grep(/\Q$latexChar1\E/, @latexTag) or
-		grep(/\Q$latexChar2\E/, @latexSplit)) and
+		} elsif (not(($latexChar1 =~ /^($search_items)$/) or
+		($latexChar2 =~ /^($search_terms)$/) or
+		($latexChar1 =~ /^($search_terms)$/) or
+		($latexChar2 =~ /^($search_items)$/)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
 			if (($latexChar1 =~ /\w$/) and
@@ -825,7 +862,7 @@ sub collapse {
 
 			$fragment = $latexChar1 . $latexChar2;
 
-			if ($debug) { print "combine: $fragment\n"; }
+			if ($debug) { print STDERR "combine: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
@@ -834,9 +871,33 @@ sub collapse {
 		($latexChar3 eq ')')) {
 			$fragment = "($latexChar2)";
 
-			if ($debug) { print "sandwiching: $fragment\n"; }
+			if ($debug) { print STDERR "sandwiching: $fragment\n"; }
 
 			splice @$latexExpr, $i, 3, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 eq '(') and
+		$latexChar4 and
+		($latexChar4 eq ')')) {
+			if (($latexChar2 =~ /\d$/) and
+			($latexChar3 =~ /^\d/)) {
+				$latexChar2 .= '*';
+			}
+
+			$fragment = "(" . $latexChar2 . $latexChar3 . ")";
+
+			if ($debug) { print STDERR "double-decker sandwich: $fragment\n"; }
+
+			splice @$latexExpr, $i, 4, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 =~ /[\*\)]$/) and
+		($latexChar2 =~ /^[\w\d]+$/)) {
+			$fragment = $latexChar1 . $latexChar2;
+
+			if ($debug) { print STDERR "combining single variable: $fragment\n"; }
+
+			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
 		}
 	

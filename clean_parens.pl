@@ -43,7 +43,7 @@ sub cleanParens {
 	$expr = &removeOuterParens($expr, $debug);
 
 	# remove parentheses around single pi
-	if ($expr !~ /($search_terms)\(pi\)/) {
+	if ($expr !~ /($search_terms)(\^[\{\(]?\d[\}\)]?)?\(pi\)/) {
 		$expr =~ s/([^\}\)])\((pi)\)/$1$2/g;
 	}
 
@@ -127,10 +127,13 @@ sub cleanSingleParens {
 	$latexExpr = &removeArrayBlanks($latexExpr, $debug);
 	my $arraySize = scalar @$latexExpr;
 
-	if ($debug) { print STDERR "removing single parens\n"; }
+	if ($debug) {
+		print STDERR "removing single parens\n";
+		print STDERR Dumper($latexExpr);
+	}
 
 	for (my $i = 0; $i < $arraySize; $i++) {
-		if (grep(/\Q$latexExpr->[$i]\E/, @latexFunc)) {
+		if (grep(/(\Q$latexExpr->[$i]\E)/, @latexFunc)) {
 			if ($debug) { print STDERR "function found\n"; }
 
 			next;
@@ -143,14 +146,32 @@ sub cleanSingleParens {
 
 			if (($latexExpr->[$i] !~ /[\^\-]\(.{2,}\)/) and
 			($latexExpr->[$i] !~ /\(.{2,}\)\^/)) {
+				if ($debug) { print STDERR "surrounding exponents\n"; }
+
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
 				$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
 
 			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
-				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)/$1/g;
+				if ($debug) { print STDERR "base paren removal\n"; }
+
+				$latexExpr->[$i] =~ s/\((-?\d*\.?\d+)\)\^/$1^/g;
+
+			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)[^\^]/) {
+				if ($debug) { print STDERR "surrounding multiplication\n"; }
+
+				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)[^\^]/*$1/g;
+
+			} elsif ($latexExpr->[$i] =~ /\*\(-?[^\^\+\-\/]+?\)$/) {
+				$latexExpr->[$i] =~ s/\*\((-?[^\^\+\-\/]+?)\)/*$1/g;
+
+			#} elsif (($latexExpr->[$i] =~ /^\(-?[\w\d\.]+?\)/) or
+			#($latexExpr->[$i] =~ /[^\^]\(-?[\w\d\.]+?\)$/)) {
+			#	if ($debug) { print STDERR "catch all\n"; }
+
+			#	$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)/$1/g;
 			}
 
-		} elsif (grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) {
+		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) {
 			if ($debug) { print STDERR "previous entry is function\n"; }
 
 			my $k = $i;
@@ -261,8 +282,9 @@ sub cleanFractions {
 			}
 
 			if (($latexExpr->[$i] eq '(') and
-			((not(grep(/\Q$latexExpr->[$i-1]\E/, @latexFunc)) and 
-			($latexExpr->[$i-1] !~ /($search_terms)$/)) or
+			((not(grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) and 
+			($latexExpr->[$i-1] !~ /($search_terms)(\^[\{\(]?\d+[\}\)]?)?$/) and
+			($latexExpr->[$i-1] !~ /\^$/)) or
 			($i == 0))) {
 				my $delim_count = 1;
 				my $j = $i+1;
@@ -285,6 +307,10 @@ sub cleanFractions {
 
 				if (($j+1 < $arraySize) and
 				($latexExpr->[$j+1] ne '/')) {
+					if ($debug) {
+						print STDERR "combining everything\n";
+					}
+
 					splice @$latexExpr, $i, $j-$i+1, $latexExpr->[$i] . $subNumerExpr . $latexExpr->[$j];
 
 					$arraySize = scalar @$latexExpr;
@@ -523,7 +549,7 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if ($expr =~ /[^_]\(.*?(\)\*?\().*?\)[^^]/) {
+	if ($expr =~ /[^\^_]\(.*?(\)\*?\().*?\)[^\^]/) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
