@@ -17,7 +17,7 @@ our @latexFunc;
 }
 our $search_terms = join('|', @latexFunc);
 
-my $debug = 0;
+my $debug = 1;
 
 GetOptions(
 	'debug|d' => \$debug
@@ -50,7 +50,9 @@ sub cleanParens {
 	if ($debug) { print STDERR "removed parens: $expr\n"; }
 
 	# ((expr)^(pow)) -> (expr)^(pow)
-	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/($1)$2/g; }
+#	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/($1)$2/g; }
+
+	if ($debug) { print STDERR "expr^pow paren removal: $expr\n"; }
 
 	# remove parens around multiplication section: a*(a^b)*c -> a*a^b*c
 	$expr =~ s/^[^\^]\((-?[\w\^\*\(\)]+)\)\*/$1*/g;
