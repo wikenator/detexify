@@ -17,7 +17,7 @@ our @latexFunc;
 }
 our $search_terms = join('|', @latexFunc);
 
-my $debug = 1;
+my $debug = 0;
 
 GetOptions(
 	'debug|d' => \$debug

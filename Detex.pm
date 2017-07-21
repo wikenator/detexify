@@ -27,7 +27,7 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
-my $maxIter = 80;
+my $maxIter = 100;
 my @latexSplit = qw(\{ \} \[ \] \^);
 
 my @latexTag;
