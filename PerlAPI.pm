@@ -39,6 +39,8 @@ sub preClean {
 	$expr =~ s/\\%/%/g;		# remove backslashes before percent signs
 	$expr =~ s/\*\*/\^/g;		# replace python ** with sage ^
 	$expr =~ s/(\w)\*(\D)/$1$2/g;	# remove verbose multiplication
+	$expr =~ s/\\nobreak//g;	# remove nobreak tags
+	$expr =~ s/\\break//g;		# remove break tags
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
