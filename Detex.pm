@@ -582,6 +582,7 @@ sub collapse {
 		($latexExpr->[$i+4] eq ')')) {
 			if ($debug) { print STDERR "power of a function\n"; }
 
+			$latexChar2 =~ s/^\^\{(\(.*?\))\}$/^$1/;
 			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
 			splice @$latexExpr, $i, 5, $fragment;
 
