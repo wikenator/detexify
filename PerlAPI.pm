@@ -219,7 +219,8 @@ sub injectAsterixes {
 	# fix split for ln
 #       $detexExpr =~ s/#l\*n\*?(\()/ln$1/g; 
 	# fix split for (arc/hyperbolic) trig 
-	$expr =~ s/#(((a?)\*?))([sct])\*([aieos])\*([cnst])\*?(h?)\*?((\^[\(\{]?-?\d+[\)\}]?)?)\*?\(/$3$4$5$6$7$8(/g;
+	$expr =~ s/#(((a?)\*?))([sct])\*([aieos])\*([cnst])\*?(h?)\*?((\^-?\d+)?)\*?\(/$3$4$5$6$7$8(/g;
+	$expr =~ s/#(((a?)\*?))([sct])\*([aieos])\*([cnst])\*?(h?)\*?((\^[\(\{][\w\-\+\*\/]+[\)\}])?)\*?\(/$3$4$5$6$7$8(/g;
 	# fix split for trig 
 #       $detexExpr =~ s/#([sct])\*([aieo])\*([cnst])\*?(\^\(?\d+\)?)?\*?(\()/$1$2$3$4$5/g;
 	# fix split for sqrt
