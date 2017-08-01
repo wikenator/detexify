@@ -551,8 +551,7 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if (($expr =~ /[^\^_]\(.*?(\)\*?\().*?\)[^\^]/) and
-	($expr !~ /($search_terms)\(.*?(\)\*?\().*?\)/)) {
+	if ($expr =~ /[^\^_]\(.*?(\)\*?\().*?\)[^\^]/) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
@@ -615,11 +614,17 @@ sub removeButtingParens {
 			print STDERR "sub right expr: $subRightExpr\n";
 		}
 
-		substr $expr, $j, $i-$j+1, $subLeftExpr;
-		
-		if ($debug) { print STDERR "left replacement: $expr\n"; }
+		# not not remove left butting parens if preceded by function
+		if ($expr !~ /($search_terms)\(.*?(\)\*?\().*?\)/) {
+			substr $expr, $j, $i-$j+1, $subLeftExpr;
 
-		substr $expr, $m-2+$left_flag, $n-$m+1, $subRightExpr;
+			if ($debug) { print STDERR "left replacement: $expr\n"; }
+
+			substr $expr, $m-2+$left_flag, $n-$m+1, $subRightExpr;
+
+		} else {
+			substr $expr, $m, $n-$m+1, $subRightExpr;
+		}
 
 		if ($debug) { print STDERR "right replacement: $expr\n"; }
 	}
