@@ -322,8 +322,14 @@ sub injectAsterixes {
 			}
 		}
 	}
-				
-	$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\^\(?-?\d+\)?)(\(.*?\))/$1$2$4$3/g;
+
+	if ($expr =~ /a?(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)\^\(?-?\d+\)?\(.*?\)\^/) {
+		$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\^\(?-?\d+\)?)(\(.*?\))/($1$2$4$3)/g;
+
+	} else {
+		$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\^\(?-?\d+\)?)(\(.*?\))/$1$2$4$3/g;
+	}
+
 	$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\^\(?-?\d+\)?)(.)/$1$2($4)$3/g;
 	$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\(.*?\))\^\((\d)\)/$1$2$3^$4/g;
 
