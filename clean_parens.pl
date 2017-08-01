@@ -551,7 +551,8 @@ sub removeButtingParens {
 	my $expr = shift;
 	my $debug = shift;
 
-	if ($expr =~ /[^\^_]\(.*?(\)\*?\().*?\)[^\^]/) {
+	if (($expr =~ /[^\^_]\(.*?(\)\*?\().*?\)[^\^]/) and
+	($expr !~ /($search_terms)\(.*?(\)\*?\().*?\)/)) {
 		my $delim_count_j = -1;
 		my $delim_count_n = 1;
 		my $i = $-[1];
