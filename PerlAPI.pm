@@ -8,7 +8,7 @@ use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 # edit this variable ONLY if you need to call detex from another directory ####
-our $detexify_path = './detexify';
+our $detexify_path = '~/git_repos/detexify';
 ###############################################################################
 
 @ISA = qw(Exporter);

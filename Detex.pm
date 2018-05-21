@@ -9,9 +9,12 @@ package Detex;
 ### tag: KEEP{}
 ###	3.3.15: method for avoiding over-saturation of parentheses in expressions
 
+use lib('../math-abstraction');
+
 use strict;
 use warnings;
 use PerlAPI qw(preClean unbalancedCharacter injectAsterixes latexplosion);
+use Abstraction qw(update_abstraction);
 use Exporter;
 use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
@@ -45,14 +48,20 @@ sub detex {
 	my $latexExpr = shift;
 	our $match = shift;
 	our $debug = shift;
+	my $abstraction = shift;
 	my $fragment = '';
+	my $abstractExpr = 'MATH';
 
 	$latexExpr = &preClean($latexExpr);
 
 	if ($latexExpr !~ /\d+\s\d+\/\d+/) {
-		$latexExpr =~ s/\s+//g; 		# remove all spaces
+		$latexExpr =~ s/\s+//g; 	# remove all spaces
 
 	} else {
+		if ($latexExpr !~ /^\d+\s\d+\/\d+$/) {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'FRACTION', 'MIXED'], $debug);
+		}
+
 		$latexExpr =~ s/(\d+)\s(\d+\/\d+)/$1+$2/g;
 	}
 
@@ -63,21 +72,54 @@ sub detex {
 	if ($debug) { print STDERR "even tags start: $latexExpr\n"; }
 
 	# make sure tags are even
-	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0) {
-		return 0;
+	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0 ||
+	&unbalancedCharacter($latexExpr, '{', '}', $debug) != 0 ||
+	&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0) {
+		if ($abstraction) {
+			return 0, 'NOPARSE';
 
-	} elsif (&unbalancedCharacter($latexExpr, '{', '}', $debug) != 0) {
-		return 0;
-
-	} elsif (&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0) {
-		return 0;
+		} else {
+			return 0;
+		}
 	}
 
 	if ($debug) { print STDERR "even tags end: $latexExpr\n"; }
 
+	if ($latexExpr =~ /^(\-)?\\infty$/) {
+		$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'VARIABLE', 'INFINITY'], $debug);
+	}
+
 	$latexExpr =~ s/(\-)?\\infty/$1inf/g;	# replace \infty with inf
+
+	if ($latexExpr =~ /^(\.|[^\d])\.\d+/) {
+		$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'NUMBER', 'DECIMAL'], $debug);
+
+	} elsif ($latexExpr =~ /^\.[a-zA-Z]+/) {
+		$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'DECIMAL'], $debug);
+
+	} elsif ($latexExpr =~ /^([^\.]+)\.([^\.]+)$/) {
+		if ($1 =~ /^\d+$/ && $2 =~ /^\d+$/) {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'NUMBER', 'DECIMAL'], $debug);
+
+		} else {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'DECIMAL'], $debug);
+		}
+	}
+
 	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g;# replace .# with 0.#
 	$latexExpr =~ s/^\.(.*?)$/0.$1/g;	# replace leading .# with 0.#
+
+	if ($latexExpr =~ /^([^^]+)^([^^]+)$/) {
+		if ($1 =~ /^\d+$/ && $2 =~ /^\d+$/) {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL'], $debug);
+
+		} else {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC'], $debug);
+		}
+
+		$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['EXPRESSION', 'EXPONENTIAL'], $debug);
+	}
+		
 	$latexExpr =~ s/\^\(([\d\w\*]+)\)/^{$1}/g;	# a^b -> a^(b)
 	$latexExpr =~ s/\^([\d\w])/^{$1}/g;	# a^b -> a^(b)
 	$latexExpr =~ s/\\cdot/*/g;		# replace \cdot tags with *
@@ -129,10 +171,36 @@ sub detex {
 		$dbl_check--;
 	}
 
+	if ($latexExpr =~ /^(.+?)\^\{\\circ\}$/) {
+		if ($1 =~ /^\d+(\.\d+)?$/) {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'NUMBER', 'DEGREE'], $debug);
+
+		} else {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC'], $debug);
+
+			# continue finding DEGREE or ANGLE abstractions here
+		}
+	}
+
 	$latexExpr =~ s/\^\{\\circ\}//g;	# remove degree symbols
 #	$latexExpr =~ s/\(/{/g;			# replace ( with {
 #	$latexExpr =~ s/\)/}/g;			# replace ) with }
+
+	if ($latexExpr =~ /\|(.*?)\|/) {
+		if ($1 =~ /^\d+(\.\d+)?$/) {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'EXPRESSION', 'ABSOLUTEVALUE'], $debug);
+
+		} else {
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'ABSOLUTEVALUE'], $debug);
+		}
+	}
+
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
+
+	if ($latexExpr =~ /^\\?pi$/) {
+		$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'VARIABLE', 'CONSTANT'], $debug);
+	}
+
 	$latexExpr =~ s/\\?pi/#pi/g;		# escape pi tag
 
 	if ($latexExpr =~ /log[^A-Za-z]/) {
@@ -162,8 +230,8 @@ sub detex {
 
 		# detexify and collapse subExpr array
 		while ((scalar @$subExpr) > 3) {
-			&detexify($subExpr);
-			&collapse($subExpr);
+			(undef, $abstractExpr) = &detexify($subExpr, $abstractExpr);
+			$abstractExpr = &collapse($subExpr, $abstractExpr);
 
 			# quit if detex does not finish before 50 iterations
 			if (++$infinite > $maxIter) { return $subExpr->[0]; }
@@ -184,8 +252,8 @@ sub detex {
 		if ($debug) { print STDERR "\nFinal Detex\n"; }
 	
 		# final detexify
-		$detexExpr = &detexify($subExpr);
-		&collapse([$detexExpr]);
+		($detexExpr, $abstractExpr) = &detexify($subExpr, $abstractExpr);
+		$abstractExpr = &collapse([$detexExpr], $abstractExpr);
 
 		$detexExpr =~ s/\\//g;	# remove backslashes
 	
@@ -198,7 +266,9 @@ sub detex {
 		}
 
 		# replace -1 exponent with arc equivalent
-		$detexExpr =~ s/(cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)\^[\(\{]{1,2}-1[\)\}]{1,2}/a$1/g;
+		if ($detexExpr =~ /(cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)\^[\(\{]{1,2}-1[\)\}]{1,2}/) {
+			$detexExpr =~ s/(cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)\^[\(\{]{1,2}-1[\)\}]{1,2}/a$1/g;
+		}
 
 		# remove *1 and 1*
 		$detexExpr =~ s/[^\w\(]1\*//g;
@@ -216,13 +286,19 @@ sub detex {
 
 	if ($debug) { print STDERR "iterations used: $infinite\n"; }
 
-	return $detexExpr;
+	if ($abstraction == 1) {
+		return $detexExpr, $abstractExpr;
+
+	} else {
+		return $detexExpr;
+	}
 }
 ###############################################################################
 
 ### Detexify: remove latex tags and expand expressions ########################
 sub detexify {
 	my $latexExpr = shift;
+	my $abstractExpr = shift;
 	our $firstPass;
 	my ($latexChar, $innerExpr, $innerDetex, $numer, $denom);
 	my $i = 0;
@@ -247,7 +323,7 @@ sub detexify {
 		}
 
 	} else {
-		return join('', @$latexExpr);
+		return join('', @$latexExpr), $abstractExpr;
 	}
 
 	while ($i < (scalar @$latexExpr)) {
@@ -275,7 +351,7 @@ sub detexify {
 			}
 
 			$firstPass = 1;
-			$numer = &detexify([$subString]);
+			($numer, $abstractExpr) = &detexify([$subString], $abstractExpr);
 			
 			if ($debug) { print STDERR "\nnumer: $numer\n"; }
 
@@ -296,7 +372,7 @@ sub detexify {
 			}
 
 			$firstPass = 1;
-			$denom = &detexify([$subString]);
+			($denom, $abstractExpr) = &detexify([$subString], $abstractExpr);
 
 			if ($debug) { print STDERR "\ndenom: $denom\n"; }
 
@@ -306,7 +382,7 @@ sub detexify {
 
 			if ($debug) { print STDERR Dumper($latexExpr); }
 
-			&collapse($latexExpr);
+			$abstractExpr = &collapse($latexExpr, $abstractExpr);
 
 		} elsif ($latexChar =~ /^($search_terms)$/) {
 			if ($debug) { print STDERR "other latex tag\n"; }
@@ -420,14 +496,14 @@ sub detexify {
 					if (++$infinite > $maxIter) {
 						if ($debug) { print STDERR "stuck in delim hell\n"; }
 
-						return $latexExpr->[0];
+						return $latexExpr->[0], $abstractExpr;
 					}
 				}
 
 				if ($debug) { print STDERR "substring: $subString\n"; }
 
 				$firstPass = 1;
-				$tag_arg = &detexify([$subString]);
+				($tag_arg, $abstractExpr) = &detexify([$subString], $abstractExpr);
 
 				$tag_arg =~ s/\{/\(/g;
 				$tag_arg =~ s/\}/\)/g;
@@ -466,7 +542,7 @@ sub detexify {
 				splice @$latexExpr, $i+$offset, $k-$i-$offset, $tag_arg;
 			}
 
-			&collapse($latexExpr);
+			$abstractExpr = &collapse($latexExpr, $abstractExpr);
 
 			if ($debug) { print STDERR "after match check: $latexExpr->[$i]\n"; }
 		}
@@ -479,7 +555,7 @@ sub detexify {
 #		}
 
 		# quit if detexify does not finish before 50 iterations
-		if (++$infinite > $maxIter) { return $latexExpr->[0]; }
+		if (++$infinite > $maxIter) { return $latexExpr->[0], $abstractExpr; }
 	}
 
 	# collapse remaining 2 or 3 subexpression entries
@@ -491,13 +567,13 @@ sub detexify {
 	}
 
 	if ($latexExpr->[0] eq $initialString) {
-		return $latexExpr->[0];
+		return $latexExpr->[0], $abstractExpr;
 
 	} elsif ((scalar @$latexExpr) == 1) {
-		return $latexExpr->[0];
+		return $latexExpr->[0], $abstractExpr;
 
 	} else {
-		&detexify($latexExpr);
+		(undef, $abstractExpr) = &detexify($latexExpr, $abstractExpr);
 	}
 }
 ###############################################################################
@@ -505,6 +581,7 @@ sub detexify {
 ### Collapse: collapse latex expression array #################################
 sub collapse {
 	my $latexExpr = shift;
+	my $abstractExpr = shift;
 	my (@collapseExpr, @latexChar);
 	my ($latexChar1, $latexChar2, $latexChar3, $latexChar4);
 	my $i = 0;
@@ -610,6 +687,8 @@ sub collapse {
 			
 			$i = -1;
 
+			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION'], $debug);
+
 		} elsif (($latexChar2 eq '{') and
 		($latexChar4 eq '}')) {
 			if ($debug) { print STDERR "part two\n"; }
@@ -630,6 +709,13 @@ sub collapse {
 					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
 				}
 
+				if ($latexChar3 =~ /^\d+(\.\d+)?$/) {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'EXPRESSION', 'ROOT'], $debug);
+
+				} else {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'ROOT'], $debug);
+				}
+
 				if ($debug) { print STDERR "sqrt frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 4, $fragment;
@@ -648,7 +734,14 @@ sub collapse {
 				
 				if ($debug) { print STDERR "bracket frag: $fragment\n"; }
 
-				$fragment = &detexify([$fragment]);
+				if ($latexChar3 =~ /^\d+(\.\d+)?$/) {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'EXPRESSION', 'EXPONENTIAL'], $debug);
+
+				} else {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'EXPONENTIAL'], $debug);
+				}
+
+				($fragment, $abstractExpr) = &detexify([$fragment], $abstractExpr);
 
 				splice @$latexExpr, $i, 4, $fragment;
 				$i = -1;
@@ -661,6 +754,14 @@ sub collapse {
 
 				$fragment = '(' . $latexChar3 . ')/(' . $latexExpr->[$i+5] . ')';
 
+				if ($latexChar3 =~ /^\d+(\.\d+)?$/ &&
+				$latexExpr->[$i+5] =~ /^\d+(\.\d+)?$/) {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'FRACTION'], $debug);
+
+				} else {
+					$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['SYMBOLIC', 'EXPRESSION', 'FRACTION'], $debug);
+				}
+					
 				if ($debug) { print STDERR "frac frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 7, $fragment;
@@ -669,7 +770,7 @@ sub collapse {
 			} elsif (($latexChar1 !~ /^($search_terms)$/) and
 			($latexChar1 !~ /^($search_items)$/)) {
 				# create '#()' fragment
-				$fragment = &detexify([$latexChar1 . "{" . $latexChar3 . "}"]);
+				($fragment, $abstractExpr) = &detexify([$latexChar1 . "{" . $latexChar3 . "}"], $abstractExpr);
 	
 				if ($debug) { print STDERR "#() frag: $fragment\n"; }
 
@@ -680,7 +781,7 @@ sub collapse {
 			($latexChar4 eq '}') and
 			($latexChar1 ne '\frac')) {
 				# create '()' fragment
-				$fragment = &detexify(["(" . $latexChar3 . ")"]);
+				($fragment, $abstractExpr) = &detexify(["(" . $latexChar3 . ")"], $abstractExpr);
 
 				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
@@ -708,7 +809,7 @@ sub collapse {
 				}
 			}
 
-			$inner_arg = &detexify([$inner_arg], $debug);
+			($inner_arg, $abstractExpr) = &detexify([$inner_arg], $abstractExpr);
 
 			if ($debug) { print STDERR "inner arg: $inner_arg\n"; }
 
@@ -747,7 +848,7 @@ sub collapse {
 			if (($latexChar4 ne '{') and 
 			($latexExpr->[$i+5] ne '}')) { 
 				# create '()' fragment
-				$fragment = &detexify(["($latexChar2)"]);
+				($fragment, $abstractExpr) = &detexify(["($latexChar2)"], $abstractExpr);
 				
 				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
@@ -761,7 +862,7 @@ sub collapse {
 		($latexExpr->[$i-1] !~ /^($search_terms)$/)) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
-				$fragment = &detexify([$latexChar1 . "(" . $latexChar2 . ")"]);
+				($fragment, $abstractExpr) = &detexify([$latexChar1 . "(" . $latexChar2 . ")"], $abstractExpr);
 			
 				if ($debug) { print STDERR "^a fragment: $fragment\n"; }
 
@@ -770,7 +871,7 @@ sub collapse {
 			} elsif (($latexChar2 eq '(') and
 			$latexChar4 and
 			($latexChar4 eq ')')) {
-				$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4]);
+				($fragment, $abstractExpr) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $abstractExpr);
 
 				if ($debug) { print STDERR "^(a) fragment: $fragment\n"; }
 
@@ -782,7 +883,7 @@ sub collapse {
 			$latexChar2 =~ s/\}/)/;
 
 			#create 'a^b' fragment
-			$fragment = &detexify([$latexChar1 . $latexChar2]);
+			($fragment, $abstractExpr) = &detexify([$latexChar1 . $latexChar2], $abstractExpr);
 
 			if ($debug) { print STDERR "a^b frag: $fragment\n"; }
 
@@ -792,7 +893,7 @@ sub collapse {
 		} elsif (($latexChar1 eq '^') and
 		($latexChar2 =~ /\(.*\)/)) {
 			# create ^a fragment
-			$fragment = &detexify([$latexChar1 . $latexChar2]);
+			($fragment, $abstractExpr) = &detexify([$latexChar1 . $latexChar2], $abstractExpr);
 
 			if ($debug) { print STDERR "split a^b frag: $fragment\n"; }
 			
@@ -804,7 +905,7 @@ sub collapse {
 		$latexChar4 and
 		($latexChar4 ne '}')) {
 			# create a^b fragment
-			$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4]);
+			($fragment, $abstractExpr) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $abstractExpr);
 			
 			if ($debug) { print STDERR "{a}^b frag: $fragment\n"; }
 
@@ -819,11 +920,11 @@ sub collapse {
 			# "{, a, b, }" => "{a*b}"
 			if (($latexChar2 =~ /\d$/) and
 			($latexChar3 =~ /^\d/)) {
-				$fragment = &detexify([$latexChar2 . '*' . $latexChar3]);
+				($fragment, $abstractExpr) = &detexify([$latexChar2 . '*' . $latexChar3], $abstractExpr);
 
 			# "{, a, b, }" => "{ab}"
 			} else {
-				$fragment = &detexify([$latexChar2 . $latexChar3]);
+				($fragment, $abstractExpr) = &detexify([$latexChar2 . $latexChar3], $abstractExpr);
 			}
 
 			splice @$latexExpr, $i+1, 2, $fragment;
@@ -904,6 +1005,8 @@ sub collapse {
 	
 		$i += 1;
 	}
+
+	return $abstractExpr;
 }
 ###############################################################################
 

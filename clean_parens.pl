@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # edit this path ONLY if you need to move and call detex from another directory#
-use lib ('./detexify');
+use lib ('../detexify');
 
 use strict;
 use warnings;

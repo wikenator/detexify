@@ -5,7 +5,7 @@
 # Description: Front end script to detex.
 
 # edit this path ONLY if you need to move and call detex from another directory#
-use lib ('./detexify');
+use lib('../detexify');
 
 use strict;
 use warnings;
@@ -39,7 +39,7 @@ if ($latexExpr =~ /^\([^\(\)\,]+?(\,[^\(\)\,]+?)+\)$/) {
 	$coord = 1;
 }
 
-$detexExpr = &detex($latexExpr, $match, $debug);
+$detexExpr = &detex($latexExpr, $match, $debug, 0);
 
 if ($coord and ($detexExpr !~ /^\(.*?\)$/)) { $detexExpr = "($detexExpr)"; }
 
