@@ -9,14 +9,15 @@ use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 # edit this variable ONLY if you need to call detex from another directory ####
 our $detexify_path = '~/git_repos/detexify';
+our $abstract_path = '~/git_repos/math-abstraction';
 ###############################################################################
 
 @ISA = qw(Exporter);
 @EXPORT = ();
-@EXPORT_OK = qw(preClean detex expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
+@EXPORT_OK = qw(preClean detex abstract expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
 %EXPORT_TAGS = (
         DEFAULT => [qw(&detex &expand_expr)],
-        All     => [qw(&detex &expand_expr &num_compare &verify &removeArrayBlanks &condenseArrayExponents &injectAsterixes &removeOuterParens &cleanParens &unbalancedCharacter &condense &latexplosion &movePi)]
+        All     => [qw(&detex &abstract &expand_expr &num_compare &verify &removeArrayBlanks &condenseArrayExponents &injectAsterixes &removeOuterParens &cleanParens &unbalancedCharacter &condense &latexplosion &movePi)]
 );
 
 our @latexFunc;
@@ -85,6 +86,31 @@ sub detex {
         waitpid ($detexID, 0);
 
         return $detexResult;
+}
+###############################################################################
+
+### Math Object Abstraction ###################################################
+sub abstract {
+        my $prob = shift;
+	my $match = shift;
+	my $debug = shift;
+	$match = 'f' if not defined $match;
+	$debug = 0 if not defined $debug;
+	our $abstract_path;
+        my $abstractPath = $abstract_path . '/abstract.pl';
+	my $cmd = "$abstractPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
+
+	my $abstractID = open2(\*pipeRead, \*pipeWrite, "$cmd");
+
+        print pipeWrite "$prob\n";
+        close (pipeWrite);
+
+        my $abstractResult = <pipeRead>;
+        close (pipeRead);
+
+        waitpid ($abstractID, 0);
+
+        return $abstractResult;
 }
 ###############################################################################
 
