@@ -8,8 +8,8 @@ use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 # edit this variable ONLY if you need to call detex from another directory ####
-our $detexify_path = '~/git_repos/detexify';
-our $abstract_path = '~/git_repos/math-abstraction';
+our $detexify_path = '/home/arnold/git_repos/detexify';
+our $abstract_path = '/home/arnold/git_repos/math-abstraction';
 ###############################################################################
 
 @ISA = qw(Exporter);
@@ -30,7 +30,7 @@ our @latexFunc;
 sub preClean {
 	my $expr = shift;
 
-	$expr =~ s/\\[\,\!\s]/ /g;	# remove tex space (escaped , ! whitespace)
+	$expr =~ s/(\\[\,\!\s])+/ /g;	# remove tex space (escaped , ! whitespace)
 	$expr =~ s/\\\[/\$\$/g;		# remove escaped [
 	$expr =~ s/\\\]/\$\$/g;		# remove escaped ]
 	$expr =~ s/\\\{/\(/g;		# remove escaped {
@@ -48,10 +48,11 @@ sub preClean {
 	$expr =~ s/\\left//g;		# remove \left tags
 	$expr =~ s/\\right//g;		# remove \right tags
 	$expr =~ s/\\break//g;		# remove break tags
-	$expr =~ s/\\q?quad//g;		# remove qquad, quad tags
+	$expr =~ s/\\q?quad(\s+\(\d\))?//g; # remove qquad, quad tags with following reference
 	$expr =~ s/\\lbrack/\(/g;	# replace lbrack with (
 	$expr =~ s/\\rbrack/\)/g;	# replace rbrack with )
 	$expr =~ s/\\[lc]?dots/.../g;	# replace \dots, \ldots, \cdots with ...
+	$expr =~ s/\\([gl])eq/\\$1e/g;	# replace \geq and \leq with \ge and \le
 	$expr =~ s/\s+/ /g;		# replace multiple spaces with 1 space
 	$expr =~ s/^\s*(.*?)\s*$/$1/;	# remove leading and trailing spaces
 
@@ -98,7 +99,8 @@ sub abstract {
 	$debug = 0 if not defined $debug;
 	our $abstract_path;
         my $abstractPath = $abstract_path . '/abstract.pl';
-	my $cmd = "$abstractPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
+#	my $cmd = "$abstractPath" . ($match eq 't' ? " -m t " : "") . ($debug ? " -d " : "");
+	my $cmd = "$abstractPath" . ($debug ? " -d " : "");
 
 	my $abstractID = open2(\*pipeRead, \*pipeWrite, "$cmd");
 
