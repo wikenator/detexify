@@ -43,6 +43,7 @@ sub preClean {
 	$expr =~ s/\\nobreak//g;	# remove nobreak tags
 	$expr =~ s/\\break//g;		# remove break tags
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
+	$expr =~ s/\\limits//g;		# remove limits tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
 	$expr =~ s/\\left//g;		# remove \left tags
@@ -234,14 +235,27 @@ sub injectAsterixes {
 	$expr =~ s/([a-zA-Z])(#)/$1*$2/g;
 	# fix previous line's conversion of arc trig functions
 	$expr =~ s/(#a\*)#([cst]\*[aeios]\*[cnst]h?)/$1$2/g;
-	# fix previous conversion of pi constants
+	# fix previous conversion of constants
 	$expr =~ s/([^#])(p\*i)/$1#$2/g;
+	$expr =~ s/([^#])(t\*h\*e\*t\*a)/$1#$2/g;
+	$expr =~ s/([^#])(v\*a\*r\*p\*h\*i)/$1#$2/g;
+	$expr =~ s/([^#])(r\*h\*o)/$1#$2/g;
+	$expr =~ s/([^#])(p\*h\*i)/$1#$2/g;
 
 	if ($debug) { print STDERR "during ab->a*b 1: $expr\n"; }
 
 	# fix split for pi
 	$expr =~ s/#p\*i([\+\-\*\/]?)/pi$1/g;
 	$expr =~ s/pi\*$/pi/;
+	# fix split for constants
+	$expr =~ s/#t\*h\*e\*t\*a([\+\-\*\/]?)/theta$1/g;
+	$expr =~ s/theta\*$/theta/g;
+	$expr =~ s/#v\*a\*r\*p\*h\*i([\+\-\*\/]?)/varphi$1/g;
+	$expr =~ s/varphi\*$/varphi/g;
+	$expr =~ s/#r\*h\*o([\+\-\*\/]?)/rho$1/g;
+	$expr =~ s/rho\*$/rho/g;
+	$expr =~ s/#p\*h\*i([\+\-\*\/]?)/phi$1/g;
+	$expr =~ s/phi\*$/phi/g;
 	# fix split for log/ln
 	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
 	# fix split for ln

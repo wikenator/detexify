@@ -291,8 +291,14 @@ sub cleanFractions {
 				my $delim_count = 1;
 				my $j = $i+1;
 				my $subNumerExpr = '';
+				my $attempts = 5;
 	
 				while ($delim_count > 0) {
+					if (not $latexExpr->[$j]) {
+						if ($attempts > 0) { $attempts--; }
+						else { return 0; }
+					}
+
 					if ($latexExpr->[$j] eq '(') { $delim_count++; }
 					elsif ($latexExpr->[$j] eq ')') { $delim_count--; }
 
