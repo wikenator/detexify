@@ -241,6 +241,7 @@ sub injectAsterixes {
 	$expr =~ s/([^#])(v\*a\*r\*p\*h\*i)/$1#$2/g;
 	$expr =~ s/([^#])(r\*h\*o)/$1#$2/g;
 	$expr =~ s/([^#])(p\*h\*i)/$1#$2/g;
+	$expr =~ s/([^#])(s\*i\*g\*m\*a)/$1#$2/g;
 
 	if ($debug) { print STDERR "during ab->a*b 1: $expr\n"; }
 

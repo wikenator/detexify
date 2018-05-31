@@ -48,7 +48,8 @@ my @latexConstants;
 my $search_items = join("|", @latexSplit);
 my $search_terms = join("|", @latexTag);
 my $constant_terms = join("|", @latexConstants);
-my $is_number = '-?[\\d,]+(\\.\\d+)?';
+my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
+#my $is_number = '-?[\\d,]+(\\.\\d+)?';
 $search_terms =~ s/\\/\\\\/g;
 $constant_terms =~ s/\\/\\\\/g;
 
@@ -84,6 +85,11 @@ sub detex {
 	}
 
 	$latexExpr =~ s/\$\\\\\$//g;		# remove newline between latex tags
+
+	if ($latexExpr =~ /^(.*?):(.*?)$/) {
+		$outerAbstract = 'RATIO';
+	}
+
 	$latexExpr =~ s/^(.*?):(.*?)$/($1)\/($2)/g;	# replace : (ratio) with / (division)
 	$latexExpr =~ s/^(.*?):(.*?)$/$1)\/($2/g;	# replace : (ratio) with / (division)
 
@@ -280,13 +286,34 @@ sub detex {
 			($innerAbstract, $outerAbstract) = &Abstraction::compare_inner_outer_abstraction($temp_ia, $innerAbstract, $temp_oa, $outerAbstract, $debug);
 
 			# quit if detex does not finish before 50 iterations
-			if (++$infinite > $maxIter) { return $subExpr->[0]; }
+			if (++$infinite > $maxIter) {
+				if ($abstraction == 1) {
+					return $subExpr->[0], 'NOPARSE';
+
+				} else {
+					return $subExpr->[0];
+				}
+			}
 		
 			if ($debug) { print STDERR Dumper($subExpr); }
 		}
 
 		# collapse remaining 2 or 3 subexpression entries
 		if ((scalar @$subExpr) == 3) {
+			if ($subExpr->[1] =~ /,/) {
+				$outerAbstract = 'ORDEREDSET';
+
+				foreach ((split(',', $subExpr->[1]))) {
+					if ($_ =~ /^$is_number$/) {
+						$innerAbstract = 'LITERAL';
+
+					} else {
+						$innerAbstract = 'SYMBOLIC';
+						last;
+					}
+				}
+			}
+
 			$fragment = $subExpr->[0] . $subExpr->[1] . $subExpr->[2];
 			splice @$subExpr, 0, 3, $fragment;
 
@@ -344,7 +371,6 @@ sub detex {
 		$abstractExpr = &Abstraction::update_abstraction("MATH", [@a], $debug);
 
 		return $detexExpr, $abstractExpr;
-#		return $detexExpr, "MATH:$innerAbstract:$outerAbstract";
 
 	} else {
 		return $detexExpr;
@@ -761,7 +787,7 @@ sub collapse {
 		($latexExpr->[$i+4] eq ')')) {
 			if ($debug) { print STDERR "power of a function\n"; }
 
-			$innerAbstract = ($latexChar4 =~ /$is_number/) ? 'LITERAL' : 'SYMBOLIC';
+			$innerAbstract = ($latexChar4 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 			$latexChar2 =~ s/^\^\{(\(.*?\))\}$/^$1/;
 			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
 			splice @$latexExpr, $i, 5, $fragment;
@@ -797,6 +823,8 @@ sub collapse {
 			if ($debug) { print STDERR "part two\n"; }
 
 			if ($latexChar1 eq '\sqrt') {
+				$outerAbstract = 'EXPRESSION:ROOT';
+
 				if ($innerAbstract eq '') {
 					$innerAbstract = ($latexChar3 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 				}
@@ -1072,6 +1100,21 @@ sub collapse {
 
 		} elsif (($latexChar1 eq '(') and
 		($latexChar3 eq ')')) {
+			if ($latexChar2 =~ /,/) {
+				$outerAbstract = 'ORDEREDSET';
+
+				foreach ((split(',', $latexChar2))) {
+					if ($_ =~ /^$is_number$/) {
+						$innerAbstract = 'LITERAL';
+
+					} else {
+						$innerAbstract = 'SYMBOLIC';
+						last;
+					}
+				}
+			}
+
+			$innerAbstract = ($latexChar2 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 			$fragment = "($latexChar2)";
 
 			if ($debug) { print STDERR "sandwiching: $fragment\n"; }
@@ -1085,6 +1128,20 @@ sub collapse {
 			if (($latexChar2 =~ /\d$/) and
 			($latexChar3 =~ /^\d/)) {
 				$latexChar2 .= '*';
+			}
+
+			if ("$latexChar2$latexChar3" =~ /,/) {
+				$outerAbstract = 'ORDEREDSET';
+
+				foreach ((split(',', "$latexChar2$latexChar3"))) {
+					if ($_ =~ /^$is_number$/) {
+						$innerAbstract = 'LITERAL';
+
+					} else {
+						$innerAbstract = 'SYMBOLIC';
+						last;
+					}
+				}
 			}
 
 			$fragment = "(" . $latexChar2 . $latexChar3 . ")";
