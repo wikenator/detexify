@@ -181,8 +181,14 @@ sub cleanSingleParens {
 			my $right_paren_count = ($latexExpr->[$k] =~ tr/\)//);
 			my $delim_count = $left_paren_count - $right_paren_count;
 			my $f_arg = '';
+			my $attempts = 5;
 
 			while ($delim_count > 0) {
+				if (not $latexExpr->[$k]) {
+					if ($attempts > 0) { $attempts--; }
+					else { return 0; }
+				}
+
 				$f_arg .= $latexExpr->[$k];
 				$k++;
 

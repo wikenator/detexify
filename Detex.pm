@@ -42,7 +42,7 @@ my @latexTag;
 my @latexConstants;
 {
 	no warnings 'qw';
-	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho theta pi varphi phi rho);
+	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma theta pi varphi phi rho sigma);
 }
 
 my $search_items = join("|", @latexSplit);
@@ -64,6 +64,11 @@ sub detex {
 	my $outerAbstract = '';
 	my ($temp_ia, $temp_oa, $temp_collapse_ia, $temp_collapse_oa);
 
+	if (not $latexExpr and
+	$latexExpr != 0) {
+		return $latexExpr;
+	}
+
 	$latexExpr = &preClean($latexExpr);
 
 	if ($latexExpr !~ /\d+\s\d+\/\d+/) {
@@ -73,7 +78,6 @@ sub detex {
 		if ($latexExpr !~ /^\d+\s\d+\/\d+$/) {
 			$innerAbstract = 'LITERAL';
 			$outerAbstract = 'FRACTION';
-#			$abstractExpr = &Abstraction::update_abstraction($abstractExpr, ['LITERAL', 'FRACTION', 'MIXED'], $debug);
 		}
 
 		$latexExpr =~ s/(\d+)\s(\d+\/\d+)/$1+$2/g;
@@ -89,12 +93,8 @@ sub detex {
 	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0 or
 	&unbalancedCharacter($latexExpr, '{', '}', $debug) != 0 or
 	&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0) {
-		if ($abstraction) {
-			return 0, 'NOPARSE';
-
-		} else {
-			return 0;
-		}
+		if ($abstraction) { return 0, 'NOPARSE'; }
+		else { return 0; }
 	}
 
 	if ($debug) { print STDERR "even tags end: $latexExpr\n"; }
@@ -114,7 +114,9 @@ sub detex {
 		$outerAbstract = 'DECIMAL';
 
 	} elsif ($latexExpr =~ /^([^\.]*)\.([^\.]+)$/) {
-		if (($1 =~ /^[\d,]+$/) and ($2 =~ /^\d+$/)) {
+		my $temp2 = $2;
+
+		if (($1 =~ /^[\d,]+$/) and ($temp2 =~ /^\d+$/)) {
 			$innerAbstract = 'LITERAL';
 			$outerAbstract = 'DECIMAL';
 
@@ -218,7 +220,7 @@ sub detex {
 
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
 
-	if ($latexExpr =~ /^-?($constant_terms)(_.)?$/) {
+	if ($latexExpr =~ /^($is_number)?($constant_terms|[a-zA-Z])(_.)?$/) {
 		$innerAbstract = 'SYMBOLIC';
 		$outerAbstract = 'CONSTANT';
 	}
@@ -228,6 +230,7 @@ sub detex {
 	$latexExpr =~ s/\\?varphi/#varphi/g;
 	$latexExpr =~ s/\\?rho/#rho/g;
 	$latexExpr =~ s/\\?phi/#phi/g;
+	$latexExpr =~ s/\\?sigma/#sigma/g;
 
 	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?(.+?)\)?$/) {
 		$outerAbstract = 'EXPRESSION:LOGARITHM';

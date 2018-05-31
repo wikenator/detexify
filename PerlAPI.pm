@@ -256,6 +256,8 @@ sub injectAsterixes {
 	$expr =~ s/rho\*$/rho/g;
 	$expr =~ s/#p\*h\*i([\+\-\*\/]?)/phi$1/g;
 	$expr =~ s/phi\*$/phi/g;
+	$expr =~ s/#s\*i\*g\*m\*a([\+\-\*\/]?)/sigma$1/g;
+	$expr =~ s/sigma\*$/sigma/g;
 	# fix split for log/ln
 	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
 	# fix split for ln
