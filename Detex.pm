@@ -1068,7 +1068,7 @@ sub collapse {
 			$i = -1;
 
 		} elsif (not(($latexChar1 =~ /^($search_items)$/) or
-#		($latexChar2 =~ /^($search_terms)$/) or
+		($latexChar2 =~ /^($search_terms)$/) or
 		($latexChar1 =~ /^($search_terms)$/) or
 		($latexChar2 =~ /^($search_items)$/)) and
 		not($latexChar1 eq '(') and
@@ -1156,6 +1156,15 @@ sub collapse {
 			$fragment = $latexChar1 . $latexChar2;
 
 			if ($debug) { print STDERR "combining single variable: $fragment\n"; }
+
+			splice @$latexExpr, $i, 2, $fragment;
+			$i = -1;
+
+		} elsif (($latexChar1 =~ /^($search_terms)$/) and
+		($latexChar2 =~ /^\([^\(\)]+?\)$/)) {
+			$fragment = $latexChar1 . $latexChar2;
+
+			if ($debug) { print STDERR "concat function with argument: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
