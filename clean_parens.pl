@@ -7,15 +7,12 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(gnu_getopt);
-use PerlAPI qw(removeArrayBlanks removeOuterParens condenseArrayExponents unbalancedCharacter);
+use PerlAPI qw(removeArrayBlanks removeOuterParens condenseArrayExponents unbalancedCharacter getLatexFunc getSearchTermsFunc getConstantTerms);
 use Data::Dumper;
 
-our @latexFunc;
-{
-	no warnings 'qw';
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot);
-}
-our $search_terms = join('|', @latexFunc);
+our @latexFunc = &getLatexFunc();
+our $search_terms = &getSearchTermsFunc();
+our $constant_terms = &getConstantTerms();
 
 my $debug = 0;
 
@@ -152,8 +149,13 @@ sub cleanSingleParens {
 			($latexExpr->[$i] =~ /[^a-zA-Z]\(.{2,}\)/)) {
 				if ($debug) { print STDERR "surrounding exponents\n"; }
 
-				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
-				$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
+				if ($latexExpr->[$i] !~ /($constant_terms)\*\(.+?\)/) {
+					$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
+					$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
+
+				} else {
+					$latexExpr->[$i] =~ s/($constant_terms)\*(\(.+?\))/$1$2/g;
+				}
 
 			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
 				if ($debug) { print STDERR "base paren removal\n"; }

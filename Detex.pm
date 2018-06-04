@@ -10,10 +10,11 @@ package Detex;
 ###	3.3.15: method for avoiding over-saturation of parentheses in expressions
 
 use lib('/home/arnold/git_repos/math-abstraction');
+use lib('/home/arnold/git_repos/detexify');
 
 use strict;
 use warnings;
-use PerlAPI qw(preClean unbalancedCharacter injectAsterixes latexplosion);
+use PerlAPI qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms preClean unbalancedCharacter injectAsterixes latexplosion);
 use Abstraction qw(compare_inner_abstraction compare_outer_abstraction compare_inner_outer_abstraction update_abstraction);
 use Exporter;
 use Data::Dumper;
@@ -31,27 +32,15 @@ our ($debug, $match);
 our $firstPass = 1;
 my $infinite = 0;
 my $maxIter = 100;
-my @latexSplit = qw(\{ \} \[ \] \^);
+our @latexSplit = &getLatexSplit();
+our $search_items = &getSearchItems();
+our @latexTag = &getLatexTag();
+our $search_terms = &getSearchTermsTag();
+our @latexConstants = &getLatexConstants();
+our $constant_terms = &getConstantTerms();
 
-my @latexTag;
-{
-	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
-}
-
-my @latexConstants;
-{
-	no warnings 'qw';
-	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma theta pi varphi phi rho sigma);
-}
-
-my $search_items = join("|", @latexSplit);
-my $search_terms = join("|", @latexTag);
-my $constant_terms = join("|", @latexConstants);
 my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
 #my $is_number = '-?[\\d,]+(\\.\\d+)?';
-$search_terms =~ s/\\/\\\\/g;
-$constant_terms =~ s/\\/\\\\/g;
 
 ### Detex: remove latex tags from expressions #################################
 sub detex {
@@ -67,7 +56,8 @@ sub detex {
 
 	if (not $latexExpr and
 	$latexExpr != 0) {
-		return $latexExpr;
+		if ($abstraction == 1) { return $latexExpr, 'NOPARSE'; }
+		else { return $latexExpr; }
 	}
 
 	$latexExpr = &preClean($latexExpr);
@@ -99,7 +89,7 @@ sub detex {
 	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0 or
 	&unbalancedCharacter($latexExpr, '{', '}', $debug) != 0 or
 	&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0) {
-		if ($abstraction) { return 0, 'NOPARSE'; }
+		if ($abstraction == 1) { return 0, 'NOPARSE'; }
 		else { return 0; }
 	}
 
@@ -233,9 +223,9 @@ sub detex {
 
 	$latexExpr =~ s/\\?pi/#pi/g;		# escape pi tag
 	$latexExpr =~ s/\\?theta/#theta/g;
-	$latexExpr =~ s/\\?varphi/#varphi/g;
-	$latexExpr =~ s/\\?rho/#rho/g;
 	$latexExpr =~ s/\\?phi/#phi/g;
+	$latexExpr =~ s/\\?var#phi/#varphi/g;
+	$latexExpr =~ s/\\?rho/#rho/g;
 	$latexExpr =~ s/\\?sigma/#sigma/g;
 
 	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?(.+?)\)?$/) {
@@ -356,7 +346,7 @@ sub detex {
 
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
-	if ($detexExpr =~ /^($constant_terms|[a-zA-Z])\(.\)$/) {
+	if ($detexExpr =~ /^($constant_terms|[a-zA-Z])\(.+?\)$/) {
 		$outerAbstract = 'EXPRESSION:FUNCTION';
 		$innerAbstract = 'SYMBOLIC';
 	}

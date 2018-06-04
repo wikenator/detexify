@@ -14,17 +14,41 @@ our $abstract_path = '/home/arnold/git_repos/math-abstraction';
 
 @ISA = qw(Exporter);
 @EXPORT = ();
-@EXPORT_OK = qw(preClean detex abstract expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
+@EXPORT_OK = qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms getLatexFunc getSearchTermsFunc preClean detex abstract expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
 %EXPORT_TAGS = (
         DEFAULT => [qw(&detex &expand_expr)],
         All     => [qw(&detex &abstract &expand_expr &num_compare &verify &removeArrayBlanks &condenseArrayExponents &injectAsterixes &removeOuterParens &cleanParens &unbalancedCharacter &condense &latexplosion &movePi)]
 );
 
+our @latexSplit = qw(\{ \} \[ \] \^);
+our @latexTag;
+our @latexConstants;
 our @latexFunc;
 {
 	no warnings 'qw';
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #ln #log);
+	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
+	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma theta pi varphi phi rho sigma);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #ln #log);
 }
+our $search_items = join('|', @latexSplit);
+our $search_terms_tag = join('|', @latexTag);
+our $constant_terms = join('|', @latexConstants);
+our $search_terms_func = join('|', @latexFunc);
+
+sub getLatexSplit { return @latexSplit; }
+sub getLatexTag { return @latexTag; }
+sub getLatexConstants { return @latexConstants; }
+sub getLatexFunc { return @latexFunc; }
+sub getSearchItems { return $search_items; }
+sub getSearchTermsTag {
+	$search_terms_tag =~ s/\\/\\\\/g;
+	return $search_terms_tag;
+}
+sub getConstantTerms {
+	$constant_terms =~ s/\\/\\\\/g;
+	return $constant_terms;
+}
+sub getSearchTermsFunc { return $search_terms_func; }
 
 ### Standard Data Cleaning for All Procedures #################################
 sub preClean {
@@ -239,9 +263,10 @@ sub injectAsterixes {
 	# fix previous conversion of constants
 	$expr =~ s/([^#])(p\*i)/$1#$2/g;
 	$expr =~ s/([^#])(t\*h\*e\*t\*a)/$1#$2/g;
-	$expr =~ s/([^#])(v\*a\*r\*p\*h\*i)/$1#$2/g;
-	$expr =~ s/([^#])(r\*h\*o)/$1#$2/g;
 	$expr =~ s/([^#])(p\*h\*i)/$1#$2/g;
+	$expr =~ s/([^#])(v\*a\*r\*)#?(p\*h\*i)/$1#$2$3/g;
+	$expr =~ s/(#v\*a\*r\*)#?(p\*h\*i)/$1$2/g;
+	$expr =~ s/([^#])(r\*h\*o)/$1#$2/g;
 	$expr =~ s/([^#])(s\*i\*g\*m\*a)/$1#$2/g;
 
 	if ($debug) { print STDERR "during ab->a*b 1: $expr\n"; }
@@ -252,12 +277,12 @@ sub injectAsterixes {
 	# fix split for constants
 	$expr =~ s/#t\*h\*e\*t\*a([\+\-\*\/]?)/theta$1/g;
 	$expr =~ s/theta\*$/theta/g;
+	$expr =~ s/#p\*h\*i([\+\-\*\/]?)/phi$1/g;
+	$expr =~ s/phi\*$/phi/g;
 	$expr =~ s/#v\*a\*r\*p\*h\*i([\+\-\*\/]?)/varphi$1/g;
 	$expr =~ s/varphi\*$/varphi/g;
 	$expr =~ s/#r\*h\*o([\+\-\*\/]?)/rho$1/g;
 	$expr =~ s/rho\*$/rho/g;
-	$expr =~ s/#p\*h\*i([\+\-\*\/]?)/phi$1/g;
-	$expr =~ s/phi\*$/phi/g;
 	$expr =~ s/#s\*i\*g\*m\*a([\+\-\*\/]?)/sigma$1/g;
 	$expr =~ s/sigma\*$/sigma/g;
 	# fix split for log/ln
