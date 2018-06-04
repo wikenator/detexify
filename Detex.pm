@@ -609,7 +609,8 @@ sub detexify {
 				if ($debug) { print STDERR "substring: $subString\n"; }
 
 				$firstPass = 1;
-				($tag_arg, $innerAbstract, $outerAbstract) = &detexify([$subString], $innerAbstract, $outerAbstract);
+				($tag_arg, $innerAbstract, $outerAbstract) = &detexify(&latexplosion($subString, $debug), $innerAbstract, $outerAbstract);
+#				($tag_arg, $innerAbstract, $outerAbstract) = &detexify([$subString], $innerAbstract, $outerAbstract);
 
 				$tag_arg =~ s/\{/\(/g;
 				$tag_arg =~ s/\}/\)/g;
@@ -654,6 +655,12 @@ sub detexify {
 			$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
 
 			if ($debug) { print STDERR "after match check: $latexExpr->[$i]\n"; }
+
+		} elsif ($latexExpr->[$i+1] eq '^') {
+			($temp_ia, $temp_oa) = &collapse($latexExpr, $innerAbstract, $outerAbstract);
+			$outerAbstract = &Abstraction::compare_outer_abstraction($outerAbstract, $temp_oa, $debug);
+			$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
+#		($innerAbstract, $outerAbstract) = &Abstraction::compare_inner_outer_abstraction($temp_ia, $innerAbstract, $temp_oa, $outerAbstract, $debug);
 		}
 			
 		$i++;
@@ -1016,6 +1023,8 @@ sub collapse {
 			$latexChar2 =~ s/\}/)/;
 
 			#create 'a^b' fragment
+			($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, undef);
+
 			if ($debug) { print STDERR "a^b frag: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
@@ -1093,6 +1102,8 @@ sub collapse {
 				$i--;
 				splice @$latexExpr, $i-1, 2, $latexExpr->[$i-1] . $latexExpr->[$i];
 			}
+
+			$innerAbstract = ($latexChar1 =~ /[a-zA-Z]$/ and $latexChar2 =~ /^^/) ? 'SYMBOLIC' : $innerAbstract;
 
 			$fragment = $latexChar1 . $latexChar2;
 
