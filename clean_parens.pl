@@ -144,10 +144,12 @@ sub cleanSingleParens {
 		if ($i == 0) {
 			if ($debug) { print STDERR "first index\n"; }
 
-			$latexExpr->[$i] =~ s/\((.!?)\)/$1/g;
+			$latexExpr->[$i] =~ s/([^a-zA-Z])\((.!?)\)/$1$2/g;
 
+			# 3rd line change: maintain function notation
 			if (($latexExpr->[$i] !~ /[\^\-]\(.{2,}\)/) and
-			($latexExpr->[$i] !~ /\(.{2,}\)\^/)) {
+			($latexExpr->[$i] !~ /\(.{2,}\)\^/) and
+			($latexExpr->[$i] =~ /[^a-zA-Z]\(.{2,}\)/)) {
 				if ($debug) { print STDERR "surrounding exponents\n"; }
 
 				$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;

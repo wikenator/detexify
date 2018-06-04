@@ -356,6 +356,11 @@ sub detex {
 
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
+	if ($detexExpr =~ /^($constant_terms|[a-zA-Z])\(.\)$/) {
+		$outerAbstract = 'EXPRESSION:FUNCTION';
+		$innerAbstract = 'SYMBOLIC';
+	}
+
 	# final paren removal for negative numbers
 	$detexExpr =~ s/((?<!\^)(?<!sqrt))\((-\w+)\)([^\^])/$1$2$3/g;
 	$detexExpr =~ s/^\((-\w+)\)([^\^])/$1$2/;
@@ -571,6 +576,8 @@ sub detexify {
 			my $k = $j;
 			
 			if ($delim_count > 0) {
+				if ($debug) { print STDERR "gathering arg\n"; }
+
 				while ($delim_count > 0) {
 					if (($latexExpr->[$k] eq $left_delim) and ($j != $k)) { $delim_count++; }
 					elsif ($latexExpr->[$k] eq $right_delim) { $delim_count--; }
@@ -865,7 +872,7 @@ sub collapse {
 				
 				if ($debug) { print STDERR "bracket frag: $fragment\n"; }
 
-				($fragment, $innerAbstract, undef) = &detexify([$fragment], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$fragment], $innerAbstract, $outerAbstract);
 
 				splice @$latexExpr, $i, 4, $fragment;
 				$i = -1;
@@ -896,7 +903,7 @@ sub collapse {
 			} elsif (($latexChar1 !~ /^($search_terms)$/) and
 			($latexChar1 !~ /^($search_items)$/)) {
 				# create '#()' fragment
-				($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . "{" . $latexChar3 . "}"], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . "{" . $latexChar3 . "}"], $innerAbstract, $outerAbstract);
 	
 				if ($debug) { print STDERR "#() frag: $fragment\n"; }
 
@@ -909,7 +916,7 @@ sub collapse {
 				$innerAbstract = ($latexChar3 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 
 				# create '()' fragment
-				($fragment, $innerAbstract, undef) = &detexify(["(" . $latexChar3 . ")"], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify(["(" . $latexChar3 . ")"], $innerAbstract, $outerAbstract);
 
 				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
@@ -937,7 +944,7 @@ sub collapse {
 				}
 			}
 
-			($inner_arg, $innerAbstract, undef) = &detexify([$inner_arg], $innerAbstract, undef);
+			($inner_arg, $innerAbstract, $outerAbstract) = &detexify([$inner_arg], $innerAbstract, $outerAbstract);
 
 			if ($debug) { print STDERR "inner arg: $inner_arg\n"; }
 
@@ -976,7 +983,7 @@ sub collapse {
 			if (($latexChar4 ne '{') and 
 			($latexExpr->[$i+5] ne '}')) { 
 				# create '()' fragment
-				($fragment, $innerAbstract, undef) = &detexify(["($latexChar2)"], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify(["($latexChar2)"], $innerAbstract, $outerAbstract);
 				
 				if ($debug) { print STDERR "() frag: $fragment\n"; }
 
@@ -990,7 +997,7 @@ sub collapse {
 		($latexExpr->[$i-1] !~ /^($search_terms)$/)) {
 			# create '^a' fragment
 			if ($latexChar2 ne '(') {
-				($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . "(" . $latexChar2 . ")"], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . "(" . $latexChar2 . ")"], $innerAbstract, $outerAbstract);
 			
 				if ($debug) { print STDERR "^a fragment: $fragment\n"; }
 
@@ -999,8 +1006,6 @@ sub collapse {
 			} elsif (($latexChar2 eq '(') and
 			$latexChar4 and
 			($latexChar4 eq ')')) {
-				($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $innerAbstract, undef);
-
 				if ($debug) { print STDERR "^(a) fragment: $fragment\n"; }
 
 				splice (@$latexExpr, $i, 4, $fragment);
@@ -1011,8 +1016,6 @@ sub collapse {
 			$latexChar2 =~ s/\}/)/;
 
 			#create 'a^b' fragment
-			($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, undef);
-
 			if ($debug) { print STDERR "a^b frag: $fragment\n"; }
 
 			splice @$latexExpr, $i, 2, $fragment;
@@ -1021,7 +1024,7 @@ sub collapse {
 		} elsif (($latexChar1 eq '^') and
 		($latexChar2 =~ /\(.*\)/)) {
 			# create ^a fragment
-			($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, undef);
+			($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, $outerAbstract);
 
 			if ($debug) { print STDERR "split a^b frag: $fragment\n"; }
 			
@@ -1033,7 +1036,7 @@ sub collapse {
 		$latexChar4 and
 		($latexChar4 ne '}')) {
 			# create a^b fragment
-			($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $innerAbstract, undef);
+			($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $innerAbstract, $outerAbstract);
 			
 			if ($debug) { print STDERR "{a}^b frag: $fragment\n"; }
 
@@ -1048,11 +1051,11 @@ sub collapse {
 			# "{, a, b, }" => "{a*b}"
 			if (($latexChar2 =~ /\d$/) and
 			($latexChar3 =~ /^\d/)) {
-				($fragment, $innerAbstract, undef) = &detexify([$latexChar2 . '*' . $latexChar3], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar2 . '*' . $latexChar3], $innerAbstract, $outerAbstract);
 
 			# "{, a, b, }" => "{ab}"
 			} else {
-				($fragment, $innerAbstract, undef) = &detexify([$latexChar2 . $latexChar3], $innerAbstract, undef);
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar2 . $latexChar3], $innerAbstract, $outerAbstract);
 			}
 
 			splice @$latexExpr, $i+1, 2, $fragment;

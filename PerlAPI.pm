@@ -205,9 +205,10 @@ sub injectAsterixes {
 		$expr =~ s/([^#])(a?)([sct])([aieos])([cnst])(h?)/$1#$2$3$4$5$6/g;
 	}
 
-	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;  # a(x) -> a*(x)
+	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;	# a(x) -> a*(x)
 	# run second time for deeper nested expressions
-	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;  # a(x) -> a*(x)
+	$expr =~ s/([\w]+)\s?\((.*?)\)/$1*($2)/g;	# a(x) -> a*(x)
+	$expr =~ s/(\w[^\*])?([a-zA-Z])\*\((.)\)/$1$2($3)/g;	# f*(x) -> f(x)
 	# fix for subscript
 	$expr =~ s/_\*/_/g;
 	$expr =~ s/([\(\{])(.*?)([\)\}])\s?(#?[\w]+)/$1$2$3*$4/g;  # (x)a -> (x)*a OR {x}a -> {x}*a
