@@ -15,17 +15,17 @@ use lib('/home/arnold/git_repos/detexify');
 use strict;
 use warnings;
 use PerlAPI qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms preClean unbalancedCharacter injectAsterixes latexplosion);
-use Abstraction qw(compare_inner_abstraction compare_outer_abstraction compare_inner_outer_abstraction update_abstraction);
+use Abstraction qw(:All);
 use Exporter;
 use Data::Dumper;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 @ISA = qw(Exporter);
 @EXPORT = ();
-@EXPORT_OK = qw(detex);
+@EXPORT_OK = qw(&abstract &detex);
 %EXPORT_TAGS = (
 	DEFAULT => [qw(&detex)],
-	All     => [qw(&detex &detexify &collapse)]
+	All     => [qw(&abstract &detex &detexify &collapse)]
 );
 
 our ($debug, $match);
@@ -41,6 +41,24 @@ our $constant_terms = &getConstantTerms();
 
 my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
 #my $is_number = '-?[\\d,]+(\\.\\d+)?';
+
+### Abstract: math object abstraction and categorization ######################
+sub abstract {
+	my $latexExpr = shift;
+	our $debug = shift;
+	my $coord = 0;
+	my $detexExpr;
+	my $abstraction;
+
+	if ($latexExpr =~ /^\([^\(\)\,]+?(\,[^\(\)\,]+?)+\)$/) { $coord = 1; }
+
+	($detexExpr, $abstraction) = &detex($latexExpr, 'f', $debug, 1);
+
+	if ($coord and ($detexExpr !~ /^\(.*?\)$/)) { $detexExpr = "($detexExpr)"; }
+
+	return $detexExpr, $abstraction;
+}
+###############################################################################
 
 ### Detex: remove latex tags from expressions #################################
 sub detex {
@@ -646,7 +664,8 @@ sub detexify {
 
 			if ($debug) { print STDERR "after match check: $latexExpr->[$i]\n"; }
 
-		} elsif ($latexExpr->[$i+1] eq '^') {
+		} elsif ($latexExpr->[$i+1] and 
+		$latexExpr->[$i+1] eq '^') {
 			($temp_ia, $temp_oa) = &collapse($latexExpr, $innerAbstract, $outerAbstract);
 			$outerAbstract = &Abstraction::compare_outer_abstraction($outerAbstract, $temp_oa, $debug);
 			$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
