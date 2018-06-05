@@ -309,19 +309,21 @@ sub detex {
 
 		# collapse remaining 2 or 3 subexpression entries
 		if ((scalar @$subExpr) == 3) {
-			if ($subExpr->[1] =~ /,/) {
-				$outerAbstract = 'ORDEREDSET';
+			if ($debug) { print "remaining collapse entries\n"; }
 
-				foreach ((split(',', $subExpr->[1]))) {
-					if ($_ =~ /^$is_number$/) {
-						$innerAbstract = 'LITERAL';
+#			if ($subExpr->[1] =~ /,/) {
+#				$outerAbstract = 'ORDEREDSET';
 
-					} else {
-						$innerAbstract = 'SYMBOLIC';
-						last;
-					}
-				}
-			}
+#				foreach ((split(',', $subExpr->[1]))) {
+#					if ($_ =~ /^$is_number$/) {
+#						$innerAbstract = 'LITERAL';
+
+#					} else {
+#						$innerAbstract = 'SYMBOLIC';
+#						last;
+#					}
+#				}
+#			}
 
 			$fragment = $subExpr->[0] . $subExpr->[1] . $subExpr->[2];
 			splice @$subExpr, 0, 3, $fragment;
@@ -660,10 +662,11 @@ sub detexify {
 				splice @$latexExpr, $i+$offset, $k-$i-$offset, $tag_arg;
 			}
 
-			($temp_ia, undef) = &collapse($latexExpr, $innerAbstract, $outerAbstract);
+			($temp_ia, $temp_oa) = &collapse($latexExpr, $innerAbstract, $outerAbstract);
 			$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
+			$outerAbstract = &Abstraction::compare_outer_abstraction($temp_oa, $outerAbstract, $debug);
 
-			if ($debug) { print STDERR "after match check: $latexExpr->[$i]\n"; }
+			if ($debug) { print STDERR "after match check: " . ($latexExpr->[$i] ? $latexExpr->[$i] : 'nothing') . "\n"; }
 
 		} elsif ($latexExpr->[$i+1] and 
 		$latexExpr->[$i+1] eq '^') {
@@ -778,8 +781,10 @@ sub collapse {
 		# add addition sign into mixed fractions
 		# ALLOW variables instead of just numbers
 		if (($latexChar2 eq '\frac') and
-		($latexChar1 =~ /\d*\.?\d+$/)) {
+		(($latexChar1 =~ /\d*\.?\d+$/) or
+		($latexChar1 =~ /\w/))) {
 			if (($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) or
+			($latexChar2 =~ /\\frac\{\w\}\{\w\}/) or
 			($latexChar2 =~ /^\\frac/)) {
 				$latexExpr->[$i] = $latexChar1 . '+';
 
@@ -1023,6 +1028,8 @@ sub collapse {
 			} elsif (($latexChar2 eq '(') and
 			$latexChar4 and
 			($latexChar4 eq ')')) {
+				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4], $innerAbstract, $outerAbstract);
+
 				if ($debug) { print STDERR "^(a) fragment: $fragment\n"; }
 
 				splice (@$latexExpr, $i, 4, $fragment);

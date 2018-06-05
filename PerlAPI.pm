@@ -428,7 +428,7 @@ sub latexplosion {
 	my $debug = shift;
 	my @fragment;
 
-	my $subExpr = [split(/([{}\(\)\[\]\^\*\/_])/, $expr)];
+	my $subExpr = [split(/([{},\(\)\[\]\^\*\/_])/, $expr)];
 
         # splice backslashes together with corresponding latex tag
 	for my $i (0 .. (scalar @$subExpr)-1) {
