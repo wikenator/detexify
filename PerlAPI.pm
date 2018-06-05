@@ -28,7 +28,7 @@ our @trigTag;
 {
 	no warnings 'qw';
 	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log);
-	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma theta pi varphi phi rho sigma gamma Gamma);
+	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma);
 	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
 	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
@@ -428,7 +428,7 @@ sub latexplosion {
 	my $debug = shift;
 	my @fragment;
 
-	my $subExpr = [split(/([{},\(\)\[\]\^\*\/_])/, $expr)];
+	my $subExpr = [split(/([{}\(\)\[\]\^\*\/_])/, $expr)];
 
         # splice backslashes together with corresponding latex tag
 	for my $i (0 .. (scalar @$subExpr)-1) {

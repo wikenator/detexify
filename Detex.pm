@@ -234,7 +234,7 @@ sub detex {
 
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
 
-	if ($latexExpr =~ /^($is_number)?($constant_terms|[a-zA-Z])(_.)?$/) {
+	if ($latexExpr =~ /^-?($is_number)?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
 		$innerAbstract = 'SYMBOLIC';
 		$outerAbstract = 'CONSTANT';
 	}
@@ -493,8 +493,7 @@ sub detexify {
 
 			if ($debug) { print STDERR Dumper($latexExpr); }
 
-			($temp_ia, undef) = &collapse($latexExpr, $innerAbstract, $outerAbstract);
-			$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
+			$innerAbstract = &Abstraction::compare_inner_abstraction((&collapse($latexExpr, $innerAbstract, $outerAbstract))[0], $innerAbstract, $debug);
 
 		} elsif ($latexChar =~ /^($search_terms)$/) {
 			if ($debug) { print STDERR "other latex tag\n"; }
@@ -735,6 +734,7 @@ sub collapse {
 	my $i = 0;
 	my $j;
 	my $fragment = '';
+	my ($temp_ia, $temp_oa);
 
 	if ($debug) {
 		print STDERR "Collapsing\n";
@@ -779,7 +779,6 @@ sub collapse {
 		}
 
 		# add addition sign into mixed fractions
-		# ALLOW variables instead of just numbers
 		if (($latexChar2 eq '\frac') and
 		(($latexChar1 =~ /\d*\.?\d+$/) or
 		($latexChar1 =~ /\w/))) {
@@ -839,6 +838,7 @@ sub collapse {
 		($latexChar2 eq '-')) and
 		($latexChar3 !~ /^($search_terms)$/)) {
 			$innerAbstract = 'SYMBOLIC';
+			$outerAbstract = 'EXPRESSION';
 			$fragment = $latexChar1 . $latexChar2 . $latexChar3;
 
 			if ($debug) { print STDERR "combining additive items: $fragment\n"; }
@@ -1040,7 +1040,8 @@ sub collapse {
 			$latexChar2 =~ s/\}/)/;
 
 			#create 'a^b' fragment
-			($fragment, $innerAbstract, undef) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, undef);
+			($fragment, $temp_ia, $outerAbstract) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, $outerAbstract);
+			$innerAbstract = &Abstraction::compare_inner_abstraction(($latexChar1 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
 
 			if ($debug) { print STDERR "a^b frag: $fragment\n"; }
 
@@ -1135,17 +1136,13 @@ sub collapse {
 				$outerAbstract = 'ORDEREDSET';
 
 				foreach ((split(',', $latexChar2))) {
-					if ($_ =~ /^$is_number$/) {
-						$innerAbstract = 'LITERAL';
-
-					} else {
-						$innerAbstract = 'SYMBOLIC';
-						last;
-					}
+					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$_], $innerAbstract, $outerAbstract))[1], $innerAbstract, $debug);
 				}
+
+			} else {
+				$innerAbstract = ($latexChar2 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 			}
 
-			$innerAbstract = ($latexChar2 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 			$fragment = "($latexChar2)";
 
 			if ($debug) { print STDERR "sandwiching: $fragment\n"; }
@@ -1159,19 +1156,12 @@ sub collapse {
 			if (($latexChar2 =~ /\d$/) and
 			($latexChar3 =~ /^\d/)) {
 				$latexChar2 .= '*';
-			}
 
-			if ("$latexChar2$latexChar3" =~ /,/) {
+			} elsif ("$latexChar2$latexChar3" =~ /,/) {
 				$outerAbstract = 'ORDEREDSET';
 
 				foreach ((split(',', "$latexChar2$latexChar3"))) {
-					if ($_ =~ /^$is_number$/) {
-						$innerAbstract = 'LITERAL';
-
-					} else {
-						$innerAbstract = 'SYMBOLIC';
-						last;
-					}
+					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$_], $innerAbstract, $outerAbstract))[1], $innerAbstract, $debug);
 				}
 			}
 
