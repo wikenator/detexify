@@ -245,6 +245,7 @@ sub detex {
 	$latexExpr =~ s/\\?var#phi/#varphi/g;
 	$latexExpr =~ s/\\?rho/#rho/g;
 	$latexExpr =~ s/\\?sigma/#sigma/g;
+	$latexExpr =~ s/\\?([Gg])amma/#$1amma/g;
 
 	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?(.+?)\)?$/) {
 		$outerAbstract = 'EXPRESSION:LOGARITHM';

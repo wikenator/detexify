@@ -24,21 +24,25 @@ our @latexSplit = qw(\{ \} \[ \] \^);
 our @latexTag;
 our @latexConstants;
 our @latexFunc;
+our @trigTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #ln #log);
-	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma theta pi varphi phi rho sigma);
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #ln #log);
+	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log);
+	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma theta pi varphi phi rho sigma gamma Gamma);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
+	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
 our $search_items = join('|', @latexSplit);
 our $search_terms_tag = join('|', @latexTag);
 our $constant_terms = join('|', @latexConstants);
 our $search_terms_func = join('|', @latexFunc);
+our $trig_terms = join('|', @trigTag);
 
 sub getLatexSplit { return @latexSplit; }
 sub getLatexTag { return @latexTag; }
 sub getLatexConstants { return @latexConstants; }
 sub getLatexFunc { return @latexFunc; }
+sub getTrigTag { return @trigTag; }
 sub getSearchItems { return $search_items; }
 sub getSearchTermsTag {
 	$search_terms_tag =~ s/\\/\\\\/g;
@@ -49,7 +53,7 @@ sub getConstantTerms {
 	return $constant_terms;
 }
 sub getSearchTermsFunc { return $search_terms_func; }
-
+sub getTrigTerms { return $trig_terms; }
 ### Standard Data Cleaning for All Procedures #################################
 sub preClean {
 	my $expr = shift;
@@ -285,6 +289,9 @@ sub injectAsterixes {
 	$expr =~ s/rho\*$/rho/g;
 	$expr =~ s/#s\*i\*g\*m\*a([\+\-\*\/]?)/sigma$1/g;
 	$expr =~ s/sigma\*$/sigma/g;
+	$expr =~ s/#([Gg])\*a\*m\*m\*a([\+\-\*\/]?)/$1amma$2/g;
+	$expr =~ s/([Gg])amma\*$/$1amma/g;
+	$expr =~ s/($constant_terms)\*?\(/$1(/g;
 	# fix split for log/ln
 	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
 	# fix split for ln

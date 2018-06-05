@@ -7,10 +7,11 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(gnu_getopt);
-use PerlAPI qw(removeArrayBlanks removeOuterParens condenseArrayExponents unbalancedCharacter getLatexFunc getSearchTermsFunc getConstantTerms);
+use PerlAPI qw(removeArrayBlanks removeOuterParens condenseArrayExponents unbalancedCharacter getLatexFunc getSearchTermsFunc getLatexConstants getConstantTerms);
 use Data::Dumper;
 
 our @latexFunc = &getLatexFunc();
+our @latexConstants = &getLatexConstants();
 our $search_terms = &getSearchTermsFunc();
 our $constant_terms = &getConstantTerms();
 
@@ -177,7 +178,8 @@ sub cleanSingleParens {
 			#	$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)/$1/g;
 			}
 
-		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc)) {
+		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc) or
+		grep(/(\Q$latexExpr->[$i-1]\E)/, @latexConstants)) {
 			if ($debug) { print STDERR "previous entry is function\n"; }
 
 			my $k = $i;
@@ -550,7 +552,7 @@ sub cleanFractions {
 		if ($debug) { print STDERR "removed parens 3: $expr\n"; }
 
 		# remove parentheses around fractions not 'attached' to surrounding expression
-		if (($expr !~ /($search_terms|\^|\/)(\^[\{\(]?\d+[\}\)]?)?\([a-zA-Z0-9]+\/[a-zA-Z0-9]+\)/) and
+		if (($expr !~ /($search_terms|$constant_terms|\^|\/)(\^[\{\(]?\d+[\}\)]?)?\([a-zA-Z0-9]+\/[a-zA-Z0-9]+\)/) and
 		($expr !~ /\([a-zA-Z0-9\+\-\/]+\)\^/)) {
 			$expr =~ s/([a-zA-Z\+\-]?)\(([a-zA-Z0-9]+\/[a-zA-Z0-9]+)\)([a-zA-Z\+\-]?)/$1$2$3/g;
 			$expr =~ s/^\(-?([a-zA-Z0-9]+\/[a-zA-Z0-9]+)\)([a-z\+\-]?)/-$1$2/g;
