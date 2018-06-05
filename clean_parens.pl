@@ -150,12 +150,12 @@ sub cleanSingleParens {
 			($latexExpr->[$i] =~ /[^a-zA-Z]\(.{2,}\)/)) {
 				if ($debug) { print STDERR "surrounding exponents\n"; }
 
-				if ($latexExpr->[$i] !~ /($constant_terms)\*\(.+?\)/) {
+				if ($latexExpr->[$i] !~ /($constant_terms|[a-zA-Z])\*\(.+?\)/) {
 					$latexExpr->[$i] =~ s/\((-?\d*\.?\d{2,}!?)\)/$1/g;
 					$latexExpr->[$i] =~ s/\((-?[\w\^]+)\)/$1/g;
 
 				} else {
-					$latexExpr->[$i] =~ s/($constant_terms)\*(\(.+?\))/$1$2/g;
+					$latexExpr->[$i] =~ s/($constant_terms|[a-zA-Z])\*(\(.+?\))/$1$2/g;
 				}
 
 			} elsif ($latexExpr->[$i] =~ /\(-?\d*\.?\d+\)\^/) {
