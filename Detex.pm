@@ -94,6 +94,10 @@ sub detex {
 
 	$latexExpr =~ s/\$\\\\\$//g;		# remove newline between latex tags
 
+	if ($latexExpr =~ /^$is_number$/) {
+		$innerAbstract = 'LITERAL';
+	}
+
 	if ($latexExpr =~ /^(.*?):(.*?)$/) {
 		$outerAbstract = 'RATIO';
 	}
@@ -119,7 +123,7 @@ sub detex {
 
 	$latexExpr =~ s/(\-)?\\infty/$1inf/g;	# replace \infty with inf
 
-	if ($latexExpr =~ /^(\.|[^\d])\.\d+/) {
+	if ($latexExpr =~ /^(\.|[^\d])\.\d+(\\?%)?/) {
 		$innerAbstract = 'LITERAL';
 		$outerAbstract = 'DECIMAL';
 
@@ -127,10 +131,11 @@ sub detex {
 		$innerAbstract = 'SYMBOLIC';
 		$outerAbstract = 'DECIMAL';
 
-	} elsif ($latexExpr =~ /^([^\.]*)\.([^\.]+)$/) {
+	} elsif ($latexExpr =~ /^([^\.]*)\.([^\.]+?)(\\?%)?$/) {
+		my $temp1 = $1;
 		my $temp2 = $2;
 
-		if (($1 =~ /^[\d,]+$/) and ($temp2 =~ /^\d+$/)) {
+		if (($temp1 =~ /^[\d,]*$/) and ($temp2 =~ /^\d+$/)) {
 			$innerAbstract = 'LITERAL';
 			$outerAbstract = 'DECIMAL';
 
@@ -155,7 +160,28 @@ sub detex {
 
 		$outerAbstract .= 'EXPRESSION:EXPONENTIAL';
 	}
-		
+
+	if ($latexExpr =~ /%$/) {
+		if ($latexExpr =~ /^$is_number\\?%$/) {
+			if (not defined $outerAbstract or
+			($outerAbstract eq '')) {
+				$outerAbstract = 'LITERAL:PERCENT';
+
+			} else {
+				$outerAbstract .= ':PERCENT';
+			}
+
+		} else {
+			if (not defined $outerAbstract or
+			($outerAbstract eq '')) {
+				$outerAbstract = 'LITERAL:PERCENT';
+
+			} else {
+				$outerAbstract .= ':PERCENT';
+			}
+		}
+	}
+
 	$latexExpr =~ s/\^\(([\d\w\*]+)\)/^{$1}/g;	# a^b -> a^(b)
 	$latexExpr =~ s/\^([\d\w])/^{$1}/g;	# a^b -> a^(b)
 	$latexExpr =~ s/\\cdot/*/g;		# replace \cdot tags with *
@@ -414,7 +440,7 @@ sub detexify {
 	my $initialString = $latexExpr;
 
 	if ($debug) {
-		print STDERR "Entering detexify:\n";
+		print STDERR "Entering detexify (pass $firstPass):\n";
 		print STDERR "IA: $innerAbstract, OA: $outerAbstract\n";
 		print STDERR Dumper($latexExpr);
 	}
@@ -710,9 +736,14 @@ sub detexify {
 	} elsif ((scalar @$latexExpr) == 1) {
 		if ($debug) { print "only one item\n"; }
 
-		if ($innerAbstract eq '' and
-		$latexExpr->[0] =~ /^$is_number$/) {
-			$innerAbstract = 'LITERAL';
+		if ((not defined $innerAbstract) or
+		($innerAbstract eq '')) {
+			if ($latexExpr->[0] =~ /^$is_number$/) {
+				$innerAbstract = 'LITERAL';
+
+			} else {
+				$innerAbstract = 'SYMBOLIC';
+			}
 		}
 
 		return $latexExpr->[0], $innerAbstract, $outerAbstract;
@@ -1136,6 +1167,7 @@ sub collapse {
 				$outerAbstract = 'ORDEREDSET';
 
 				foreach ((split(',', $latexChar2))) {
+					$firstPass = 1;
 					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$_], $innerAbstract, $outerAbstract))[1], $innerAbstract, $debug);
 				}
 
@@ -1161,6 +1193,7 @@ sub collapse {
 				$outerAbstract = 'ORDEREDSET';
 
 				foreach ((split(',', "$latexChar2$latexChar3"))) {
+					$firstPass = 1;
 					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$_], $innerAbstract, $outerAbstract))[1], $innerAbstract, $debug);
 				}
 			}
