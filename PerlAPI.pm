@@ -27,8 +27,8 @@ our @latexFunc;
 our @trigTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log);
-	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma);
+	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
+	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega \\delta \\chi chi delta omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma #pi);
 	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
 	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
@@ -72,6 +72,7 @@ sub preClean {
 	$expr =~ s/\\break//g;		# remove break tags
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/\\limits//g;		# remove limits tags
+	$expr =~ s/\\pounds//g;		# remove pounds tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
 	$expr =~ s/\\left//g;		# remove \left tags
@@ -311,6 +312,8 @@ sub injectAsterixes {
 	$expr =~ s/i\*n\*f/inf/g;
 	# fix split for null
 	$expr =~ s/n\*u\*l\*l/null/g;
+	# fix split for angle
+	$expr =~ s/a\*n\*g\*l\*e\*?/angle /g;
 
 	if ($debug) { print STDERR "during ab->a*b 2: $expr\n"; }
 

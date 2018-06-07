@@ -178,8 +178,8 @@ sub cleanSingleParens {
 			#	$latexExpr->[$i] =~ s/\((-?[\w\d\.]+?)\)/$1/g;
 			}
 
-		} elsif (grep(/(\Q$latexExpr->[$i-1]\E)/, @latexFunc) or
-		grep(/(\Q$latexExpr->[$i-1]\E)/, @latexConstants)) {
+		} elsif (grep(/^(\Q$latexExpr->[$i-1]\E)$/, @latexFunc) or
+		grep(/^(\Q$latexExpr->[$i-1]\E)$/, @latexConstants)) {
 			if ($debug) { print STDERR "previous entry is function\n"; }
 
 			my $k = $i;
