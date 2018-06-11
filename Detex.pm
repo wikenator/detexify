@@ -14,7 +14,7 @@ use lib('/home/arnold/git_repos/detexify');
 
 use strict;
 use warnings;
-use PerlAPI qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms preClean unbalancedCharacter injectAsterixes latexplosion);
+use PerlAPI qw(:Constants preClean unbalancedCharacter injectAsterixes latexplosion isLiteral isExpression);
 use Abstraction qw(:All);
 use Exporter;
 use Data::Dumper;
@@ -38,6 +38,7 @@ our @latexTag = &getLatexTag();
 our $search_terms = &getSearchTermsTag();
 our @latexConstants = &getLatexConstants();
 our $constant_terms = &getConstantTerms();
+our $trig_terms = &getTrigTerms();
 
 my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
 #my $is_number = '-?[\\d,]+(\\.\\d+)?';
@@ -94,7 +95,7 @@ sub detex {
 
 	$latexExpr =~ s/\$\\\\\$//g;		# remove newline between latex tags
 
-	if ($latexExpr =~ /^$is_number$/) {
+	if (&isLiteral($latexExpr, $debug)) {
 		$innerAbstract = 'LITERAL';
 	}
 
@@ -110,9 +111,9 @@ sub detex {
 	# make sure tags are even
 	if (&unbalancedCharacter($latexExpr, '(', ')', $debug) != 0 or
 	&unbalancedCharacter($latexExpr, '{', '}', $debug) != 0 or
-	&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0 or
-	&unbalancedCharacter($latexExpr, '[', ')', $debug) != 0 or
-	&unbalancedCharacter($latexExpr, '(', ']', $debug) != 0) {
+#	&unbalancedCharacter($latexExpr, '(', ']', $debug) != 0 or
+#	&unbalancedCharacter($latexExpr, '[', ')', $debug) != 0 or
+	&unbalancedCharacter($latexExpr, '[', ']', $debug) != 0) {
 		if ($abstraction == 1) { return 0, 'NOPARSE'; }
 		else { return 0; }
 	}
@@ -165,10 +166,14 @@ sub detex {
 	}
 
 	if ($latexExpr =~ /%$/) {
-		if ($latexExpr =~ /^$is_number\\?%$/) {
+		if ($debug) { print STDERR "percentage found\n"; }
+
+#		if ($latexExpr =~ /^$is_number\\?%$/) {
+		if ($innerAbstract ne 'LITERAL' and
+		&isLiteral($latexExpr, $debug)) {
 			if (not defined $outerAbstract or
 			($outerAbstract eq '')) {
-				$outerAbstract = 'LITERAL:PERCENT';
+				$outerAbstract = 'PERCENT';
 
 			} else {
 				$outerAbstract .= ':PERCENT';
@@ -177,7 +182,7 @@ sub detex {
 		} else {
 			if (not defined $outerAbstract or
 			($outerAbstract eq '')) {
-				$outerAbstract = 'LITERAL:PERCENT';
+				$outerAbstract = 'PERCENT';
 
 			} else {
 				$outerAbstract .= ':PERCENT';
@@ -237,7 +242,9 @@ sub detex {
 	}
 
 	if ($latexExpr =~ /^(.+?)\^\{\\circ\}$/) {
-		if ($1 =~ /^$is_number$/) {
+#		if ($1 =~ /^$is_number$/) {
+		if ($innerAbstract ne 'LITERAL' and
+		&isLiteral($1, $debug)) {
 			$innerAbstract = 'LITERAL';
 			$outerAbstract = 'DEGREE';
 
@@ -257,8 +264,9 @@ sub detex {
 	if ($latexExpr =~ /\^\{\\circ\}/) {
 		$latexExpr =~ s/\^\{\\circ\}//g;	# remove degree symbols
 
-		if ($latexExpr !~ /,/) {
-			$innerAbstract = ($latexExpr =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
+		if ($latexExpr !~ /,/ and
+		$latexExpr !~ /($trig_terms)/) {
+			$innerAbstract = &isLiteral($latexExpr, $debug) ? 'LITERAL' : 'SYMBOLIC';
 		}
 	}
 
@@ -271,7 +279,7 @@ sub detex {
 
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
 
-	if ($latexExpr =~ /^-?($is_number)?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
+	if ($latexExpr =~ /^-?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
 		$innerAbstract = 'SYMBOLIC';
 		$outerAbstract = 'CONSTANT';
 	}
@@ -283,6 +291,14 @@ sub detex {
 	$latexExpr =~ s/\\?rho/#rho/g;
 	$latexExpr =~ s/\\?sigma/#sigma/g;
 	$latexExpr =~ s/\\?([Gg])amma/#$1amma/g;
+	$latexExpr =~ s/\\?beta/#beta/g;
+	$latexExpr =~ s/\\?beth/#beth/g;
+	$latexExpr =~ s/\\?alpha/#alpha/g;
+	$latexExpr =~ s/\\?aleph/#aleph/g;
+	$latexExpr =~ s/\\?omega/#omega/g;
+	$latexExpr =~ s/\\?delta/#delta/g;
+	$latexExpr =~ s/\\?chi/#chi/g;
+	$latexExpr =~ s/\\?epsilon/#epsilon/g;
 
 	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?(.+?)\)?$/) {
 		$outerAbstract = 'EXPRESSION:LOGARITHM';
@@ -308,6 +324,11 @@ sub detex {
 
 	if ($latexExpr =~ /\\?((a)(rc)?)?(cos|sin|tan|csc|sec|cot)(h)?[^A-Za-z]/) {
 		$latexExpr =~ s/\\?(((a)(rc)?)?)(cos|sin|tan|csc|sec|cot)/#$1$5$6/g;# escape atrig tag
+		$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
+	}
+
+	if ($latexExpr =~ /($trig_terms)/) {
+		$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
 	}
 
 	$latexExpr =~ s/#arc(cos|sin|tan|csc|sec|cot)/#a$1$2/g;
@@ -343,12 +364,15 @@ sub detex {
 				}
 			}
 		
-			if ($debug) { print STDERR Dumper($subExpr); }
+			if ($debug) {
+				print STDERR "end of 3-item section\n";
+				print STDERR Dumper($subExpr);
+			}
 		}
 
 		# collapse remaining 2 or 3 subexpression entries
 		if ((scalar @$subExpr) == 3) {
-			if ($debug) { print "remaining collapse entries: IA: $innerAbstract OA: $outerAbstract\n"; }
+			if ($debug) { print STDERR "remaining collapse entries: IA: $innerAbstract OA: $outerAbstract\n"; }
 
 			if ($subExpr->[1] =~ /,/) {
 				my @coords = split(',', $subExpr->[1]);
@@ -365,7 +389,7 @@ sub detex {
 					if ($debug) { print STDERR "coord: $coord\n"; }
 
 					$firstPass = 1;
-					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$coord], $innerAbstract, $outerAbstract))[1], $innerAbstract, $debug);
+					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$coord], &isLiteral($coord, $debug) ? 'LITERAL' : 'SYMBOLIC', $outerAbstract))[1], $innerAbstract, $debug);
 
 					if ($innerAbstract eq 'SYMBOLIC') { last; }
 				}
@@ -375,6 +399,8 @@ sub detex {
 			splice @$subExpr, 0, 3, $fragment;
 
 		} elsif ((scalar @$subExpr) == 2) {
+			if ($debug) { print STDERR "remaining 2 entries\n"; }
+
 			$fragment = $subExpr->[0] . $subExpr->[1];
 			splice @$subExpr, 0, 2, $fragment;
 		}
@@ -413,11 +439,11 @@ sub detex {
 
 	$detexExpr = &injectAsterixes($detexExpr, $debug);
 
-	if ($detexExpr =~ /[+\-\*\/]/) {
+	if (&isExpression($detexExpr, $outerAbstract, $debug)) {
 		$outerAbstract = &Abstraction::compare_outer_abstraction('EXPRESSION', $outerAbstract, $debug);
 	}
 
-	if ($detexExpr =~ /^($constant_terms|[a-zA-Z])\(.+?\)$/) {
+	if ($detexExpr =~ /^($constant_terms|gcd|lcm|[a-zA-Z])\([^,]+?(,[^,]+?)?\)$/) {
 		$outerAbstract = 'EXPRESSION:FUNCTION';
 		$innerAbstract = 'SYMBOLIC';
 	}
@@ -608,7 +634,15 @@ sub detexify {
 			} elsif ($latexExpr->[$i+1] and
 			($latexExpr->[$i+1] eq '^') and 
 			($latexExpr->[$i+2] eq '{')) {
-				$outerAbstract = 'EXPRESSION:EXPONENTIAL';
+				if ($debug) { print STDERR "exponential part\n"; }
+
+				if ($latexExpr->[$i] =~ /($trig_terms)/) {
+					$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
+
+				} else {
+					$outerAbstract = 'EXPRESSION:EXPONENTIAL';
+				}
+
 				$left_delim = '{';
 				$right_delim = '}';
 				
@@ -680,14 +714,14 @@ sub detexify {
 				$tag_arg =~ s/\{/\(/g;
 				$tag_arg =~ s/\}/\)/g;
 
-				if ($debug) { print STDERR "\ntag arg: $tag_arg\n"; }
+				if ($debug) { print STDERR "\ntag arg: $tag_arg, IA: $innerAbstract OA: $outerAbstract\n"; }
+
+				$innerAbstract = &isLiteral($tag_arg, $debug) ? 'LITERAL' : 'SYMBOLIC';
 
 			} else {
 				$tag_arg = $subString;
 				$k = --$j;
 			}
-
-			$innerAbstract = ($tag_arg =~ /^[\(\{]?$is_number[\)\}]?$/) ? 'LITERAL' : 'SYMBOLIC';
 
 			if ($sqrt_section and 
 			($left_delim eq '(')) {
@@ -749,9 +783,13 @@ sub detexify {
 
 	# collapse remaining 2 or 3 subexpression entries
 	if ((scalar @$latexExpr) == 3) {
+		if ($debug) { print STDERR "last three\n"; }
+
 		splice @$latexExpr, 0, 3, ($latexExpr->[0] . $latexExpr->[1] . $latexExpr->[2]);
 
 	} elsif ((scalar @$latexExpr) == 2) {
+		if ($debug) { print STDERR "last two\n"; }
+
 		splice @$latexExpr, 0, 2, ($latexExpr->[0] . $latexExpr->[1]);
 	}
 
@@ -771,8 +809,14 @@ sub detexify {
 
 		if ((not defined $innerAbstract) or
 		($innerAbstract eq '')) {
-			if ($latexExpr->[0] =~ /^$is_number$/) {
+#			if ($latexExpr->[0] =~ /^$is_number$/) {
+			if ($innerAbstract ne 'LITERAL' and
+			&isLiteral($latexExpr->[0], $debug)) {
 				$innerAbstract = 'LITERAL';
+
+			} elsif ($latexExpr->[0] =~ /^-?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
+				$innerAbstract = 'SYMBOLIC';
+				$outerAbstract = &Abstraction::compare_outer_abstraction('CONSTANT', $outerAbstract, $debug);
 
 			} else {
 				$innerAbstract = 'SYMBOLIC';
@@ -844,16 +888,17 @@ sub collapse {
 
 		# add addition sign into mixed fractions
 		if (($latexChar2 eq '\frac') and
-		(($latexChar1 =~ /\d*\.?\d+$/) or
-		($latexChar1 =~ /\w/))) {
-			if ($latexChar1 =~ /-?[\w\d]$/) {
-				if (($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) or
+		(($latexChar1 =~ /\d*\.?\d+\+?$/) or
+		($latexChar1 =~ /\w\+?/))) {
+			if ($latexChar1 =~ /-?[\w\d]\+?$/) {
+				if ((($latexChar2 =~ /\\frac\{\d*\.?\d+\}\{\d*\.?\d+\}/) or
 				($latexChar2 =~ /\\frac\{\w\}\{\w\}/) or
-				($latexChar2 =~ /^\\frac/)) {
+				($latexChar2 =~ /^\\frac/)) and
+				($latexChar1 !~ /\+$/)) {
 					$latexExpr->[$i] = $latexChar1 . '+';
 
 				# otherwise add multiplication sign to scalar multiple
-				} else {
+				} elsif ($latexChar1 !~ /\+$/) {
 					$latexExpr->[$i] = $latexChar1 . '*';
 				}
 
@@ -870,7 +915,9 @@ sub collapse {
 		($latexChar4 eq ')')) {
 			if ($debug) { print STDERR "function with simple arg\n"; }
 
-			$innerAbstract = ($latexChar3 =~ /$is_number/) ? 'LITERAL' : 'SYMBOLIC';
+			$outerAbstract = &determineOuterAbstract($latexChar1, $debug);
+#			$innerAbstract = ($latexChar3 =~ /$is_number/) ? 'LITERAL' : 'SYMBOLIC';
+			$innerAbstract = &isLiteral($latexChar3, $debug) ? 'LITERAL' : 'SYMBOLIC';
 			$fragment = $latexChar1 . '(' . $latexChar3 . ')';
 			splice @$latexExpr, $i, 4, $fragment;
 
@@ -883,7 +930,7 @@ sub collapse {
 		($latexExpr->[$i+4] eq ')')) {
 			if ($debug) { print STDERR "power of a function\n"; }
 
-			$innerAbstract = ($latexChar4 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
+			$innerAbstract = &isLiteral($latexChar4, $debug) ? 'LITERAL' : 'SYMBOLIC';
 			$latexChar2 =~ s/^\^\{(\(.*?\))\}$/^$1/;
 			$fragment = $latexChar1 . $latexChar2 . "($latexChar4)";
 			splice @$latexExpr, $i, 5, $fragment;
@@ -923,14 +970,17 @@ sub collapse {
 				$outerAbstract = 'EXPRESSION:ROOT';
 
 				if ($innerAbstract eq '') {
-					$innerAbstract = ($latexChar3 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
+#					$innerAbstract = ($latexChar3 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
+					$innerAbstract = (&detexify([$latexChar3], $innerAbstract, $outerAbstract))[1];
 				}
 
 				# create '\sqrt{a}' fragment
 				if ($match eq 'f') {
 					$latexChar3 = &injectAsterixes($latexChar3, $debug);
 
-					if ($latexChar3 =~ /[+\-\*\/]/) {
+					if (&isExpression($latexChar3, $outerAbstract, $debug)) {
+						if ($debug) { print STDERR "is expression\n"; }
+
 						$outerAbstract = &Abstraction::compare_outer_abstraction('EXPRESSION', $outerAbstract, $debug);
 					}
 
@@ -945,14 +995,20 @@ sub collapse {
 					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
 				}
 
-				if ($debug) { print STDERR "sqrt frag: $fragment\n"; }
+				if ($debug) { print STDERR "sqrt frag: $fragment, IA: $innerAbstract OA: $outerAbstract\n"; }
 
 				splice @$latexExpr, $i, 4, $fragment;
 				$i = -1;
 
 			} elsif ($latexChar1 eq '^') {
-				$innerAbstract = ($latexChar3 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
-				$outerAbstract = 'EXPRESSION:EXPONENTIAL';
+				$innerAbstract = &isLiteral($latexChar3, $debug) ? 'LITERAL' : 'SYMBOLIC';
+
+				if ($latexExpr->[$i-1] =~ /($trig_terms)/) {
+					$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
+
+				} else {
+					$outerAbstract = 'EXPRESSION:EXPONENTIAL';
+				}
 
 				# create '^{a}', '[]', or '()' fragment
 				if (length($latexChar3) == 1) {
@@ -964,7 +1020,7 @@ sub collapse {
 
 				$fragment =~ s/^\\+(.*)$/$1/;
 				
-				if ($debug) { print STDERR "bracket frag: $fragment\n"; }
+				if ($debug) { print STDERR "bracket frag: $fragment, IA: $innerAbstract, OA: $outerAbstract\n"; }
 
 				($fragment, $innerAbstract, $outerAbstract) = &detexify([$fragment], $innerAbstract, $outerAbstract);
 
@@ -980,8 +1036,11 @@ sub collapse {
 				#$fragment = &detexify([$latexChar1 . $latexChar2 . $latexChar3 . $latexChar4 . $latexExpr->[$i+4] . $latexExpr->[$i+5] . $latexExpr->[$i+6]]);
 
 				if ($innerAbstract eq '') {
-					if ($latexChar3 =~ /^$is_number$/ and
-					$latexExpr->[$i+5] =~ /^$is_number$/) {
+#					if ($latexChar3 =~ /^$is_number$/ and
+#					$latexExpr->[$i+5] =~ /^$is_number$/) {
+					if ($innerAbstract ne 'LITERAL' and
+					&isLiteral($latexChar3, $debug) and
+					&isLiteral($latexExpr->[$i+5], $debug)) {
 						$innerAbstract = 'LITERAL';
 
 					} else {
@@ -1052,7 +1111,7 @@ sub collapse {
 #			if ($match eq 'f') {
 			$latexExpr->[$i+5] = &injectAsterixes($latexExpr->[$i+5], $debug);
 
-			if ($latexExpr->[$i+5] =~ /[+\-\*\/]/) {
+			if (&isExpression($latexExpr->[$i+5], $outerAbstract, $debug)) {
 				$outerAbstract = &Abstraction::compare_outer_abstraction('EXPRESSION', $outerAbstract, $debug);
 			}
 
@@ -1117,12 +1176,14 @@ sub collapse {
 			$latexChar2 =~ s/\{/(/;
 			$latexChar2 =~ s/\}/)/;
 
+			if ($debug) { print STDERR "^{a} frag\n"; }
+
 			#create 'a^b' fragment
 			($fragment, $temp_ia, $outerAbstract) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, $outerAbstract);
 
 			if ($debug) { print STDERR "before a^b $latexChar2: IA: $temp_ia, OA: $outerAbstract\n"; }
 
-			$innerAbstract = &Abstraction::compare_inner_abstraction(($latexChar2 =~ /^\^\($is_number\)$/) ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
+			$innerAbstract = &Abstraction::compare_inner_abstraction((($latexChar1 =~ /$is_number/) and ($latexChar2 =~ /^\^\($is_number\)$/)) ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
 
 			if ($debug) { print STDERR "a^b frag: $fragment, IA: $innerAbstract\n"; }
 
@@ -1178,12 +1239,36 @@ sub collapse {
 			splice @$latexExpr, $i, 3, $fragment;
 			$i = -1;
 
+		} elsif (($latexChar1 =~ /^_\{.*?\}$/) and
+		($latexChar2 eq '(')) {
+			my $inner_arg = $latexChar3;
+			my $delims = 1;
+			my $k = $i+3;
+
+			while ($delims > 0) {
+				if ($latexExpr->[$k] eq '(') { $delims++; }
+				elsif ($latexExpr->[$k] eq ')') { $delims--; }
+
+				if ($delims > 0) {
+					$inner_arg .= $latexExpr->[$k];
+					$k++;
+				}
+			}
+
+			($inner_arg, $innerAbstract, $outerAbstract) = &detexify([$inner_arg], $innerAbstract, $outerAbstract);
+
+			if ($debug) { print STDERR "inner arg: $inner_arg\n"; }
+
+			splice @$latexExpr, $i+2, $k-$i-2, $inner_arg;
+
 		} elsif (not(($latexChar1 =~ /^($search_items)$/) or
 		($latexChar2 =~ /^($search_terms)$/) or
 		($latexChar1 =~ /^($search_terms)$/) or
 		($latexChar2 =~ /^($search_items)$/)) and
 		not($latexChar1 eq '(') and
 		not($latexChar2 eq ')')) {
+			if ($debug) { print STDERR "catch-all\n"; }
+
 			if (($latexChar1 =~ /\w$/) and
 			($latexChar2 =~ /^\w/) and
 			($latexChar2 ne '_')) {
@@ -1253,6 +1338,11 @@ sub collapse {
 			}
 
 			$fragment = "(" . $latexChar2 . $latexChar3 . ")";
+
+			# TEMPORARY, to prevent keeping SYMBOLIC:FRACTION
+#			if ($fragment =~ /\//) {
+#				$outerAbstract = 'EXPRESSION';
+#			}
 
 			if ($debug) { print STDERR "double-decker sandwich: $fragment\n"; }
 

@@ -50,7 +50,7 @@ sub cleanParens {
 	# ((expr)^(pow)) -> (expr)^(pow)
 #	if ($expr !~ /($search_terms)\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/) { $expr =~ s/\({2}([^\)]*)\)(\^[\(\{]?[^\^]?[\)\}]?)\)/($1)$2/g; }
 
-	if ($debug) { print STDERR "expr^pow paren removal: $expr\n"; }
+#	if ($debug) { print STDERR "expr^pow paren removal: $expr\n"; }
 
 	# remove parens around multiplication section: a*(a^b)*c -> a*a^b*c
 	$expr =~ s/^[^\^]\((-?[\w\^\*\(\)]+)\)\*/$1*/g;
@@ -58,6 +58,8 @@ sub cleanParens {
 	$expr =~ s/\*\((-?[\w\^\*\(\)]+)\)$/*$1/g;
 	$expr =~ s/^[^\^]\(([\w\^\*\(\)]+)\)\*/$1*/g;
 	$expr =~ s/([\+\-])\(([\w\^\*\(\)]+)\)\*/$1$2*/g;
+
+	if ($debug) { print STDERR "multiply section removal: $expr\n"; }
 
 	$expr = &cleanFractions($expr, $debug);
 	$expr =~ s/\({2}(.*?)\)\^\((.*?)\){2}\^/($1)^($2)^/g;

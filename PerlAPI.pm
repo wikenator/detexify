@@ -14,10 +14,11 @@ our $abstract_path = '/home/arnold/git_repos/math-abstraction';
 
 @ISA = qw(Exporter);
 @EXPORT = ();
-@EXPORT_OK = qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms getLatexFunc getSearchTermsFunc preClean detex abstract expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks);
+@EXPORT_OK = qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms getLatexFunc getSearchTermsFunc getTrigTag getTrigTerms preClean detex abstract expand_expr num_compare verify injectAsterixes removeOuterParens cleanParens unbalancedCharacter condense latexplosion movePi condenseArrayExponents removeArrayBlanks isLiteral isExpression determineOuterAbstract);
 %EXPORT_TAGS = (
         DEFAULT => [qw(&detex &expand_expr)],
-        All     => [qw(&detex &abstract &expand_expr &num_compare &verify &removeArrayBlanks &condenseArrayExponents &injectAsterixes &removeOuterParens &cleanParens &unbalancedCharacter &condense &latexplosion &movePi)]
+        All     => [qw(&detex &abstract &expand_expr &num_compare &verify &removeArrayBlanks &condenseArrayExponents &injectAsterixes &removeOuterParens &cleanParens &unbalancedCharacter &condense &latexplosion &movePi)],
+	Constants => [qw(getLatexSplit getSearchItems getLatexTag getSearchTermsTag getLatexConstants getConstantTerms getTrigTag getTrigTerms determineOuterAbstract)]
 );
 
 our @latexSplit = qw(\{ \} \[ \] \^);
@@ -27,10 +28,10 @@ our @latexFunc;
 our @trigTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
+	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty \\gcd inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
 	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega \\delta \\chi chi delta omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma #pi);
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
-	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot gcd #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
+	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech arcsin arccos arctan arccsc arcsec arccot asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
 our $search_items = join('|', @latexSplit);
 our $search_terms_tag = join('|', @latexTag);
@@ -52,8 +53,14 @@ sub getConstantTerms {
 	$constant_terms =~ s/\\/\\\\/g;
 	return $constant_terms;
 }
-sub getSearchTermsFunc { return $search_terms_func; }
-sub getTrigTerms { return $trig_terms; }
+sub getSearchTermsFunc {
+	$search_terms_func =~ s/\\/\\\\/g;
+	return $search_terms_func;
+}
+sub getTrigTerms {
+	$trig_terms =~ s/\\/\\\\/g;
+	return $trig_terms;
+}
 ### Standard Data Cleaning for All Procedures #################################
 sub preClean {
 	my $expr = shift;
@@ -82,6 +89,7 @@ sub preClean {
 	$expr =~ s/\\lbrack/\(/g;	# replace lbrack with (
 	$expr =~ s/\\rbrack/\)/g;	# replace rbrack with )
 	$expr =~ s/\\[lc]?dots/.../g;	# replace \dots, \ldots, \cdots with ...
+	$expr =~ s/\\cdot/*/g;		# replace \cdot with *
 	$expr =~ s/\\([gl])eq/\\$1e/g;	# replace \geq and \leq with \ge and \le
 	$expr =~ s/\s+/ /g;		# replace multiple spaces with 1 space
 	$expr =~ s/^\s*(.*?)\s*$/$1/;	# remove leading and trailing spaces
@@ -273,6 +281,14 @@ sub injectAsterixes {
 	$expr =~ s/(#v\*a\*r\*)#?(p\*h\*i)/$1$2/g;
 	$expr =~ s/([^#])(r\*h\*o)/$1#$2/g;
 	$expr =~ s/([^#])(s\*i\*g\*m\*a)/$1#$2/g;
+	$expr =~ s/([^#])(b\*e\*t\*a)/$1#$2/g;
+	$expr =~ s/([^#])(b\*e\*t\*h)/$1#$2/g;
+	$expr =~ s/([^#])(a\*l\*p\*h\*a)/$1#$2/g;
+	$expr =~ s/([^#])(a\*l\*e\*p\*h)/$1#$2/g;
+	$expr =~ s/([^#])(o\*m\*e\*g\*a)/$1#$2/g;
+	$expr =~ s/([^#])(d\*e\*l\*t\*a)/$1#$2/g;
+	$expr =~ s/([^#])(c\*h\*i)/$1#$2/g;
+	$expr =~ s/([^#])(e\*p\*s\*i\*l\*o\*n)/$1#$2/g;
 
 	if ($debug) { print STDERR "during ab->a*b 1: $expr\n"; }
 
@@ -292,6 +308,22 @@ sub injectAsterixes {
 	$expr =~ s/sigma\*$/sigma/g;
 	$expr =~ s/#([Gg])\*a\*m\*m\*a([\+\-\*\/]?)/$1amma$2/g;
 	$expr =~ s/([Gg])amma\*$/$1amma/g;
+	$expr =~ s/#b\*e\*t\*a([\+\-\*\/]?)/beta$1/g;
+	$expr =~ s/beta\*$/beta/g;
+	$expr =~ s/#b\*e\*t\*h([\+\-\*\/]?)/beth$1/g;
+	$expr =~ s/beth\*$/beth/g;
+	$expr =~ s/#a\*l\*p\*h\*a([\+\-\*\/]?)/alpha$1/g;
+	$expr =~ s/alpha\*$/alpha/g;
+	$expr =~ s/#a\*l\*e\*p\*h([\+\-\*\/]?)/aleph$1/g;
+	$expr =~ s/aleph\*$/aleph/g;
+	$expr =~ s/#o\*m\*e\*g\*a([\+\-\*\/]?)/omega$1/g;
+	$expr =~ s/omega\*$/omega/g;
+	$expr =~ s/#d\*e\*l\*t\*a([\+\-\*\/]?)/delta$1/g;
+	$expr =~ s/delta\*$/delta/g;
+	$expr =~ s/#c\*h\*i([\+\-\*\/]?)/chi$1/g;
+	$expr =~ s/chi\*$/chi/g;
+	$expr =~ s/#e\*p\*s\*i\*l\*o\*n([\+\-\*\/]?)/epsilon$1/g;
+	$expr =~ s/epsilon\*$/epsilon/g;
 	$expr =~ s/($constant_terms)\*?\(/$1(/g;
 	# fix split for log/ln
 	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
@@ -314,6 +346,8 @@ sub injectAsterixes {
 	$expr =~ s/n\*u\*l\*l/null/g;
 	# fix split for angle
 	$expr =~ s/a\*n\*g\*l\*e\*?/angle /g;
+	# fix split for gcd
+	$expr =~ s/g\*c\*d\*?\(/gcd(/g;
 
 	if ($debug) { print STDERR "during ab->a*b 2: $expr\n"; }
 
@@ -602,6 +636,68 @@ sub condense {
         $num =~ s/^(\d+)\.$/$1/;
 
         return $num;
+}
+###############################################################################
+
+### Determine if string is a literal ##########################################
+sub isLiteral {
+	my $expr = shift;
+	my $debug = shift;
+	my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
+
+	if ($expr =~ /^[\(\{]?$is_number[\)\}]?(\\?%)?$/ or
+	$expr =~ /^-?\(?\d*\.?\d+\)?\/\(?\d*\.?\d+\)?(\\?%)?$/) {
+		return 1;
+	}
+
+	return 0;
+}
+###############################################################################
+
+### Determine if string is an expression ######################################
+sub isExpression {
+	my $expr = shift;
+	my $oa = shift;
+	my $debug = shift;
+
+	if ((split(':', $oa))[0] and
+	(split(':', $oa))[0] eq 'FRACTION' and
+	$expr =~ /^[\da-zA-Z]+\+[\da-zA-Z]+\/[\da-zA-Z]+(\\?\%)?$/) {
+		return 0;
+	}
+
+	if ($debug) { print STDERR "determining if expression: $expr\n"; }
+
+	if ($expr =~ /[+\*]/) {
+		return 1;
+
+	} elsif ($expr =~ /[\w\d]-[\w\d]/ or
+	$expr =~ /[\w\d]\)?-\(?[\w\d]/) {
+		if ($debug) { print STDERR "operator found\n"; }
+
+		return 1;
+
+#	} elsif ($expr =~ /\//) {
+#		if ($debug) { print STDERR "checking division\n"; }
+
+#		if ($expr !~ /\^\(?-?.\/.\)?/ or
+#		$expr !~ /[^\^]\(?-?.\/.\)?/) {
+#			return 1;
+#		}
+	}
+
+	return 0;
+}
+###############################################################################
+
+### Determine outer abstraction based on function or tag ######################
+sub determineOuterAbstract {
+	my $expr = shift;
+	my $debug = shift;
+
+	if ($expr =~ /(log|ln)/) {
+		return 'EXPRESSION:LOGARITHM';
+	}
 }
 ###############################################################################
 
