@@ -1001,7 +1001,7 @@ sub collapse {
 				$i = -1;
 
 			} elsif ($latexChar1 eq '^') {
-				$innerAbstract = &isLiteral($latexChar3, $debug) ? 'LITERAL' : 'SYMBOLIC';
+				$innerAbstract = (&isLiteral($latexChar3, $debug) and &isLiteral($latexExpr->[$i-1], $debug)) ? 'LITERAL' : 'SYMBOLIC';
 
 				if ($latexExpr->[$i-1] =~ /($trig_terms)/) {
 					$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
@@ -1022,7 +1022,8 @@ sub collapse {
 				
 				if ($debug) { print STDERR "bracket frag: $fragment, IA: $innerAbstract, OA: $outerAbstract\n"; }
 
-				($fragment, $innerAbstract, $outerAbstract) = &detexify([$fragment], $innerAbstract, $outerAbstract);
+				($fragment, $temp_ia, $outerAbstract) = &detexify([$fragment], $innerAbstract, $outerAbstract);
+				$innerAbstract = &Abstraction::compare_inner_abstraction($temp_ia, $innerAbstract, $debug);
 
 				if ($debug) { print STDERR "after bracket: IA: $innerAbstract, OA: $outerAbstract\n"; }
 
@@ -1172,7 +1173,7 @@ sub collapse {
 				splice (@$latexExpr, $i, 4, $fragment);
 			}
 
-		} elsif ($latexChar2 =~ /^\^[\{\(].*[\)\}]/) {
+		} elsif ($latexChar2 =~ /^[_\^][\{\(].*[\)\}]/) {
 			$latexChar2 =~ s/\{/(/;
 			$latexChar2 =~ s/\}/)/;
 
@@ -1190,7 +1191,8 @@ sub collapse {
 			splice @$latexExpr, $i, 2, $fragment;
 			$i = -1;
 
-		} elsif (($latexChar1 eq '^') and
+		} elsif (($latexChar1 eq '^' or
+		$latexChar1 eq '_') and
 		($latexChar2 =~ /\(.*\)/)) {
 			# create ^a fragment
 			($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . $latexChar2], $innerAbstract, $outerAbstract);
@@ -1287,8 +1289,7 @@ sub collapse {
 				splice @$latexExpr, $i-1, 2, $latexExpr->[$i-1] . $latexExpr->[$i];
 			}
 
-			$innerAbstract = ($latexChar1 =~ /[a-zA-Z]$/ and $latexChar2 =~ /^\^/) ? 'SYMBOLIC' : $innerAbstract;
-
+			$innerAbstract = ($latexChar1 =~ /[a-zA-Z]$/ and $latexChar2 =~ /^[_\^]/) ? 'SYMBOLIC' : $innerAbstract;
 			$fragment = $latexChar1 . $latexChar2;
 
 			if ($debug) { print STDERR "combine: $fragment, IA: $innerAbstract OA: $outerAbstract\n"; }

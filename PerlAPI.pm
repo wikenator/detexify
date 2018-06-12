@@ -80,6 +80,7 @@ sub preClean {
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/\\limits//g;		# remove limits tags
 	$expr =~ s/\\pounds//g;		# remove pounds tags
+	$expr =~ s/\\math(frak|bb|cal)\{(.)\}/$2/g; # remove font-related tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
 	$expr =~ s/\\left//g;		# remove \left tags
