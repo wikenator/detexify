@@ -134,7 +134,7 @@ sub detex {
 		$innerAbstract = 'SYMBOLIC';
 		$outerAbstract = 'DECIMAL';
 
-	} elsif ($latexExpr =~ /^([^\.\(\)\{\}]*)\.([^\.\(\)\{\}]+?)(\\?%)?$/) {
+	} elsif ($latexExpr =~ /^-?([^\.\(\)\{\}\+\-\*\/]*?)\.([^\.\(\)\{\}\+\-\*\/]+?)(\\?%)?$/) {
 		my $temp1 = $1;
 		my $temp2 = $2;
 
@@ -374,6 +374,18 @@ sub detex {
 		if ((scalar @$subExpr) == 3) {
 			if ($debug) { print STDERR "remaining collapse entries: IA: $innerAbstract OA: $outerAbstract\n"; }
 
+			if ($innerAbstract eq '' and
+			$outerAbstract eq '') {
+				if ($latexExpr =~ /^[\d\.\+\-\*\/]+$/) {
+					$innerAbstract = 'LITERAL';
+					$outerAbstract = 'EXPRESSION';
+
+				} elsif ($latexExpr =~ /^[a-zA-Z\+\-\*\/]$/) {
+					$innerAbstract = 'SYMBOLIC';
+					$outerAbstract = 'EXPRESSION';
+				}
+			}
+
 			if ($subExpr->[1] =~ /,/) {
 				my @coords = split(',', $subExpr->[1]);
 
@@ -453,7 +465,13 @@ sub detex {
 		$innerAbstract = 'SYMBOLIC';
 
 	} elsif ($detexExpr =~ /vector\((F|sigma\(t\))\)/) {
-		$outerAbstract = 'CALCULUS:SINGLEVAR:VECTOR';
+		if ($1 eq 'F') {
+			$outerAbstract = 'CALCULUS:MULTIVAR:VECTOR';
+
+		} else {
+			$outerAbstract = 'CALCULUS:SINGLEVAR:VECTOR';
+		}
+
 		$innerAbstract = 'SYMBOLIC';
 	}
 
