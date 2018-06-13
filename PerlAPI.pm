@@ -28,9 +28,9 @@ our @latexFunc;
 our @trigTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty \\gcd inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
+	@latexTag = qw(\\overline \\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty \\gcd inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
 	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega \\delta \\chi chi delta omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma #pi);
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot gcd #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot gcd not overline vector #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
 	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech arcsin arccos arctan arccsc arcsec arccot asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
 our $search_items = join('|', @latexSplit);
@@ -80,7 +80,7 @@ sub preClean {
 	$expr =~ s/\\displaystyle//g;	# remove displaystyle tags
 	$expr =~ s/\\limits//g;		# remove limits tags
 	$expr =~ s/\\pounds//g;		# remove pounds tags
-	$expr =~ s/\\math(frak|bb|cal)\{(.)\}/$2/g; # remove font-related tags
+	$expr =~ s/\\math(frak|bb|cal|bf)\{(.)\}/$2/g; # remove font-related tags
 	$expr =~ s/[dt]frac/frac/g;	# replace \dfrac and \tfrac with \frac
 	$expr =~ s/\^(-.)/\^\($1\)/g;	# replace a^-b with a^(-b)
 	$expr =~ s/\\left//g;		# remove \left tags
@@ -326,8 +326,18 @@ sub injectAsterixes {
 	$expr =~ s/#e\*p\*s\*i\*l\*o\*n([\+\-\*\/]?)/epsilon$1/g;
 	$expr =~ s/epsilon\*$/epsilon/g;
 	$expr =~ s/($constant_terms)\*?\(/$1(/g;
+
 	# fix split for log/ln
-	$expr =~ s/#(l)\*([on])\*?(g?)\*?(_\{?.+?\}?)?\*?((\^[\(\{]?\d+[\)\}]?)?)\*?\(/$1$2$3$4$5(/g;
+	if ($expr =~ /#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*(\(?.+\)?)/) {
+		my $temp5 = $5;
+
+		if ($temp5 !~ /^\(.+?\)$/) { $temp5 = "($temp5)"; }
+
+		$expr =~ s/#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*\(?.+\)?/l$1$2$3$4$temp5/g;
+	}
+
+	if ($debug) { print STDERR "ln/log fix\n"; }
+
 	# fix split for ln
 #       $detexExpr =~ s/#l\*n\*?(\()/ln$1/g; 
 	# fix split for (arc/hyperbolic) trig 
@@ -349,6 +359,17 @@ sub injectAsterixes {
 	$expr =~ s/a\*n\*g\*l\*e\*?/angle /g;
 	# fix split for gcd
 	$expr =~ s/g\*c\*d\*?\(/gcd(/g;
+	# fix split for overline
+	$expr =~ s/o\*v\*e\*r\*l\*i\*n\*e\*?\(/not(/g;
+	# fix split for operatorname
+	$expr =~ s/o\*p\*e\*r\*a\*t\*o\*r\*n\*a\*m\*e\*?//g;
+	# fix split for curl
+	$expr =~ s/\(?c\*u\*r\*l\)?\*?/curl/g;
+	# fix split for div
+	$expr =~ s/\(?d\*i\*v\)?\*?/div/g;
+	# fix split for vector notation
+	$expr =~ s/o\*v\*e\*r\*#?set\(h\*a\*r\*p\*o\*o\*n\*u\*p\)\*\{([abcijkABCIJKF]|sigma)\}/vector($1)/g;
+	$expr =~ s/vector\(sigma\)\*\(t\)/vector(sigma(t))/g;
 
 	if ($debug) { print STDERR "during ab->a*b 2: $expr\n"; }
 

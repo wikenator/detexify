@@ -300,7 +300,7 @@ sub detex {
 	$latexExpr =~ s/\\?chi/#chi/g;
 	$latexExpr =~ s/\\?epsilon/#epsilon/g;
 
-	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?(.+?)\)?$/) {
+	if ($latexExpr =~ /^-?\\?(log|ln)([^a-zA-Z])?\(?.+?\)?$/) {
 		$outerAbstract = 'EXPRESSION:LOGARITHM';
 	}
 
@@ -315,9 +315,9 @@ sub detex {
 	# old ln regex
 #	$latexExpr =~ s/\\?ln/#ln/g;		# escape ln tag
 	$latexExpr =~ s/\\emptyset/#emptyset/g;	# escape emptyset tag
-	$latexExpr =~ s/\\operatorname\{(.*?)\}/$1/g;	# remove operatorname
+#	$latexExpr =~ s/\\operatorname\{(.*?)\}/$1/g;	# remove operatorname
 	$latexExpr =~ s/\\mbox\{(.*?)\}/$1/g;		# remove mbox
-	$latexExpr =~ s/\\overline\{(.*?)\}/$1/g;	# remove overline
+#	$latexExpr =~ s/\\overline\{(.*?)\}/$1/g;	# remove overline
 	$latexExpr =~ s/\\mathrm\{(.*?)\}/$1/g;		# remove mathrm
 	## mathbb, textbf, text, textit, texttt, mathcal, mathfrak
 	## doteq
@@ -446,6 +446,19 @@ sub detex {
 	if ($detexExpr =~ /^($constant_terms|gcd|lcm|[a-zA-Z])\([^,]+?(,[^,]+?)?\)$/) {
 		$outerAbstract = 'EXPRESSION:FUNCTION';
 		$innerAbstract = 'SYMBOLIC';
+	}
+
+	if ($detexExpr =~ /vector\([abcijkABCIJK]\)/) {
+		$outerAbstract = 'LINEARALG:VECTOR';
+		$innerAbstract = 'SYMBOLIC';
+
+	} elsif ($detexExpr =~ /vector\((F|sigma\(t\))\)/) {
+		$outerAbstract = 'CALCULUS:SINGLEVAR:VECTOR';
+		$innerAbstract = 'SYMBOLIC';
+	}
+
+	if ($detexExpr =~ /(curl|div)vector/) {
+		$outerAbstract = 'CALCULUS:MULTIVAR';
 	}
 
 	# final paren removal for negative numbers
@@ -918,6 +931,7 @@ sub collapse {
 			$outerAbstract = &determineOuterAbstract($latexChar1, $debug);
 #			$innerAbstract = ($latexChar3 =~ /$is_number/) ? 'LITERAL' : 'SYMBOLIC';
 			$innerAbstract = &isLiteral($latexChar3, $debug) ? 'LITERAL' : 'SYMBOLIC';
+
 			$fragment = $latexChar1 . '(' . $latexChar3 . ')';
 			splice @$latexExpr, $i, 4, $fragment;
 
@@ -1001,7 +1015,9 @@ sub collapse {
 				$i = -1;
 
 			} elsif ($latexChar1 eq '^') {
-				$innerAbstract = (&isLiteral($latexChar3, $debug) and &isLiteral($latexExpr->[$i-1], $debug)) ? 'LITERAL' : 'SYMBOLIC';
+				if ($innerAbstract eq '') {
+					$innerAbstract = (&isLiteral($latexChar3, $debug) and &isLiteral($latexExpr->[$i-1], $debug)) ? 'LITERAL' : 'SYMBOLIC';
+				}
 
 				if ($latexExpr->[$i-1] =~ /($trig_terms)/) {
 					$outerAbstract = 'EXPRESSION:TRIGONOMETRY';
@@ -1184,7 +1200,14 @@ sub collapse {
 
 			if ($debug) { print STDERR "before a^b $latexChar2: IA: $temp_ia, OA: $outerAbstract\n"; }
 
-			$innerAbstract = &Abstraction::compare_inner_abstraction((($latexChar1 =~ /$is_number/) and ($latexChar2 =~ /^\^\($is_number\)$/)) ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
+			if ($temp_ia ne 'LITERAL') {
+				if ($latexChar2 =~ /^\^/) {
+					$innerAbstract = &Abstraction::compare_inner_abstraction((($latexChar1 =~ /$is_number/) and ($latexChar2 =~ /^\^\($is_number\)$/)) ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
+
+				} elsif ($latexChar2 =~ /^_/) {
+					$innerAbstract = &Abstraction::compare_inner_abstraction($latexChar2 =~ /^_\($is_number\)$/ ? 'LITERAL' : 'SYMBOLIC', $temp_ia, $debug);
+				}
+			}
 
 			if ($debug) { print STDERR "a^b frag: $fragment, IA: $innerAbstract\n"; }
 
@@ -1309,8 +1332,8 @@ sub collapse {
 					if ($innerAbstract eq 'SYMBOLIC') { last; }
 				}
 
-			} else {
-				$innerAbstract = ($latexChar2 =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
+			} elsif ($innerAbstract eq '') {
+				$innerAbstract = &isLiteral($latexChar2, $debug) ? 'LITERAL' : 'SYMBOLIC';
 			}
 
 			$fragment = "($latexChar2)";
