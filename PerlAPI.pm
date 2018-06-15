@@ -187,14 +187,14 @@ sub removeArrayBlanks {
 	my $arraySize = (scalar @$arr);
 
 	for (my $i = 0; $i < $arraySize; $i++) {
-		if ($debug) { print STDERR "slice $i: " . $arr->[$i] . "\n"; }
+		if ($debug) { print STDERR "ARRBLANK slice $i: " . $arr->[$i] . "\n"; }
 
 		if ($arr->[$i] ne '0') {
 			if (not($arr->[$i]) or ($arr->[$i] eq '')) {
 				splice @$arr, $i, 1;
 				$arraySize--;
 
-				if ($debug) { print STDERR "----------\n"; }
+				if ($debug) { print STDERR "ARRBLANK ----------\n"; }
 			}
 		}
 	}
@@ -212,7 +212,7 @@ sub condenseArrayExponents {
 	my $arraySize = (scalar @$arr);
 
 	for (my $i = 0; $i < $arraySize; $i++) {
-		if ($debug) { print STDERR "slice $i: " . $arr->[$i] . "\n"; }
+		if ($debug) { print STDERR "CONDENSEARR slice $i: " . $arr->[$i] . "\n"; }
 
 		if ($arr->[$i] eq '/') {
 			if (($arr->[$i-3] =~ /\^$/) and
@@ -224,7 +224,7 @@ sub condenseArrayExponents {
 				$arraySize -= 5;
 				$i -= 2;
 
-				if ($debug) { print STDERR "----------\n"; }
+				if ($debug) { print STDERR "CONDENSEARR ----------\n"; }
 			}
 		}
 	}
@@ -252,7 +252,7 @@ sub injectAsterixes {
 	$expr =~ s/([\(\{])(.*?)([\)\}])\s?(#?[\w]+)/$1$2$3*$4/g;  # (x)a -> (x)*a OR {x}a -> {x}*a
 	$expr =~ s/([\)\}])([\(\{])/$1*$2/g;                       # )( -> )*(
 
-	if ($debug) { print STDERR "before ab->a*b: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST before ab->a*b: $expr\n"; }
 
 	# split expr again to avoid splitting up functions
 
@@ -291,7 +291,7 @@ sub injectAsterixes {
 	$expr =~ s/([^#])(c\*h\*i)/$1#$2/g;
 	$expr =~ s/([^#])(e\*p\*s\*i\*l\*o\*n)/$1#$2/g;
 
-	if ($debug) { print STDERR "during ab->a*b 1: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST during ab->a*b 1: $expr\n"; }
 
 	# fix split for pi
 	$expr =~ s/#p\*i([\+\-\*\/]?)/pi$1/g;
@@ -328,15 +328,15 @@ sub injectAsterixes {
 	$expr =~ s/($constant_terms)\*?\(/$1(/g;
 
 	# fix split for log/ln
-	if ($expr =~ /#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*(\(?.+\)?)/) {
+	if ($expr =~ /#l\*([on])\*?(g?)\*?([_\^]\(?.+?\)?)?\*?([_\^]\(?.+?\)?)?\*?(\(?.+\)?)/) {
 		my $temp5 = $5;
 
 		if ($temp5 !~ /^\(.+?\)$/) { $temp5 = "($temp5)"; }
 
-		$expr =~ s/#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*\(?.+\)?/l$1$2$3$4$temp5/g;
+		$expr =~ s/#l\*([on])\*?(g?)\*?([_\^]\(?.+?\)?)?\*?([_\^]\(?.+?\)?)?\*?\(?.+\)?/l$1$2$3$4$temp5/g;
 	}
 
-	if ($debug) { print STDERR "ln/log fix\n"; }
+	if ($debug) { print STDERR "INJECTAST ln/log fix\n"; }
 
 	# fix split for ln
 #       $detexExpr =~ s/#l\*n\*?(\()/ln$1/g; 
@@ -371,7 +371,7 @@ sub injectAsterixes {
 	$expr =~ s/o\*v\*e\*r\*#?set\(h\*a\*r\*p\*o\*o\*n\*u\*p\)\*\{([abcijkABCIJKF]|sigma)\}/vector($1)/g;
 	$expr =~ s/vector\(sigma\)\*\(t\)/vector(sigma(t))/g;
 
-	if ($debug) { print STDERR "during ab->a*b 2: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST during ab->a*b 2: $expr\n"; }
 
 	$expr = &movePi($expr, $debug);
 
@@ -381,7 +381,7 @@ sub injectAsterixes {
 	### complete trig expression handling here
 #       $detexExpr =~ s/([^(sin|cos|tan|csc|cot|sec|du|dv|-|\+|\*|\/)])([^(sin|cos|tan|csc|cot|sec|du|dv|^)])/$1*$2/g;  # ab -> a*b
 
-	if ($debug) { print STDERR "after ab->a*b: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST after ab->a*b: $expr\n"; }
 
 	# remove ending periods
 	$expr =~ s/\.$/""/g;
@@ -389,7 +389,7 @@ sub injectAsterixes {
 	# clean unnecessary parentheses from expression
 	$expr = &cleanParens($expr, $debug);
 
-	if ($debug) { print STDERR "after paren cleaning 1: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST after paren cleaning 1: $expr\n"; }
 
 	if ($expr =~ /[\{\}]/g) {
 		$expr =~ s/{/(/g;  # replace curly braces with parentheses
@@ -398,7 +398,7 @@ sub injectAsterixes {
 		# clean unnecessary parentheses from expression after bracket to parenthesis conversion
 		$expr = &cleanParens($expr, $debug);
 
-		if ($debug) { print STDERR "after paren cleaning 2: $expr\n"; }
+		if ($debug) { print STDERR "INJECTAST after paren cleaning 2: $expr\n"; }
 	}
 
 	# move trig/ln exponents after the argument: sin^2(x) -> sin(x)^2
@@ -470,7 +470,7 @@ sub injectAsterixes {
 	$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\^\(?-?\d+\)?)(.)/$1$2($4)$3/g;
 	$expr =~ s/(a?)(ln|log|cosh|sinh|tanh|csch|sech|coth|cos|sin|tan|csc|sec|cot)(\(.*?\))\^\((\d)\)/$1$2$3^$4/g;
 
-	if ($debug) { print STDERR "after trig exponent move: $expr\n"; }
+	if ($debug) { print STDERR "INJECTAST after trig exponent move: $expr\n"; }
 
 	# final a(x) -> a*(x)
 	$expr =~ s/(\^[\w])\s?\((.*?)\)/$1*($2)/g;
@@ -503,14 +503,14 @@ sub latexplosion {
 	}
 
 	if ($debug) {
-		print STDERR "before blank removal: ";
+		print STDERR "PLOSION before blank removal: ";
 		print STDERR Dumper($subExpr);
 	}
 
 	$subExpr = &removeArrayBlanks($subExpr, $debug);
 
 	if ($debug) {
-		print STDERR "after blank removal: ";
+		print STDERR "PLOSION after blank removal: ";
 		print STDERR Dumper($subExpr);
 	}
 
@@ -531,25 +531,25 @@ sub movePi {
 		while ($expr =~ /pi\*[^\^\)\+\-\/]/) {
 			# pi*(a)^(b) -> (a)^(b)*pi
 			if ($expr =~ /pi\*(\(.*?\)\^\(.*?\)\*?)/) {
-				if ($debug) { print STDERR "move pi 1: $1\n"; }
+				if ($debug) { print STDERR "MOVEPI move pi 1: $1\n"; }
 	
 				$expr =~ s/(pi)\*(\(.*?\)\^\(.*?\)\*?)/$2*$1/g;
 	
 			# pi*(a)^{b} -> (a)^{b}*pi
 			} elsif ($expr =~ /pi\*(\([^\+\-\(\)]\)\^\{.*?\})/) {
-				if ($debug) { print STDERR "move pi 2: $1\n"; }
+				if ($debug) { print STDERR "MOVEPI move pi 2: $1\n"; }
 	
 				$expr =~ s/(pi)\*(\(.*?\)\^\{.*?\})/$2*$1/g;
 	
 			# pi*a^b -> a^b*pi
 			} elsif ($expr =~ /pi\*([^\+\-\(\)]+\^\{.*?\})/) {
-				if ($debug) { print STDERR "move pi 3: $1\n"; }
+				if ($debug) { print STDERR "MOVEPI move pi 3: $1\n"; }
 	
 				$expr =~ s/(pi)\*([^\+\-\(\)]+\^\{.*?\})/$2*$1/g;
 
 			# pi*(a) -> (a)*pi
 			} elsif ($expr =~ /pi\*(\([^\+\-\(\)]\)\*?)/) {
-				if ($debug) { print STDERR "move pi 4: $1\n"; }
+				if ($debug) { print STDERR "MOVEPI move pi 4: $1\n"; }
 
 				$expr =~ s/(pi)\*(\(.*?\)\*?)/$2*$1/g;
 	
@@ -557,7 +557,7 @@ sub movePi {
 			} elsif ($expr =~ /pi\*([^\+\-\(\)]+\*?)/) {
 				my $temp_results = $1;
 
-				if ($debug) { print STDERR "move pi 5: $1\n"; }
+				if ($debug) { print STDERR "MOVEPI move pi 5: $1\n"; }
 
 				if ($temp_results =~ /\^$/) {
 					$expr =~ s/(pi)\*([^\+\-\(\)]+\^\(.*?\)\*?)/$2*$1/g;
@@ -598,11 +598,11 @@ sub removeOuterParens {
 
 	my $innerExpr = $outerExpr;
 
-	if ($debug) { print STDERR "outer: $outerExpr\n"; }
+	if ($debug) { print STDERR "REMOVEOUTER outer: $outerExpr\n"; }
 
 	$innerExpr =~ s/^\((.*?)\)$/$1/;
 
-	if ($debug) { print STDERR "inner: $innerExpr\n"; }
+	if ($debug) { print STDERR "REMOVEOUTER inner: $innerExpr\n"; }
 
 	if (&unbalancedCharacter($innerExpr, '(', ')', $debug) == 0) {
 		return $innerExpr;
@@ -646,7 +646,7 @@ sub condense {
         my $num = shift;
 	my $debug = shift;
 
-        if ($debug) { print STDERR "before condense: $num\n"; }
+        if ($debug) { print STDERR "CONDENSE before condense: $num\n"; }
 
         # remove all spaces and commas
         $num =~ s/[\s\,]//g;
@@ -688,14 +688,14 @@ sub isExpression {
 		return 0;
 	}
 
-	if ($debug) { print STDERR "determining if expression: $expr\n"; }
+	if ($debug) { print STDERR "ISEXPR determining if expression: $expr\n"; }
 
 	if ($expr =~ /[+\*]/) {
 		return 1;
 
 	} elsif ($expr =~ /[\w\d]-[\w\d]/ or
 	$expr =~ /[\w\d]\)?-\(?[\w\d]/) {
-		if ($debug) { print STDERR "operator found\n"; }
+		if ($debug) { print STDERR "ISEXPR operator found\n"; }
 
 		return 1;
 
@@ -719,6 +719,9 @@ sub determineOuterAbstract {
 
 	if ($expr =~ /(log|ln)/) {
 		return 'EXPRESSION:LOGARITHM';
+
+	} elsif ($expr =~ /($trig_terms)/) {
+		return 'EXPRESSION:TRIGONOMETRY';
 	}
 }
 ###############################################################################
