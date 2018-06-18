@@ -518,7 +518,7 @@ sub detex {
 		if (length($latexExpr) == 3) {
 			if ($debug) { print STDERR "DETEX short-length abstract 3\n"; }
 			
-			if ($latexExpr =~ /^([\da-zA-Z])[\+\-\*\/]([\da-zA-Z])$/) {
+			if ($latexExpr =~ /^(.+?)[\+\-\*\/](.+?)$/) {
 				my $temp1 = $1;
 				my $temp2 = $2;
 				$outerAbstract = 'EXPRESSION';
@@ -529,6 +529,11 @@ sub detex {
 
 				} else {
 					$innerAbstract = 'LITERAL';
+
+					# override EXPRESSION abstraction
+					if ($latexExpr =~ /^.+?\/.+?$/) {
+						$outerAbstract = 'FRACTION';
+					}
 				}
 
 			} elsif ($latexExpr =~ /^[\+\-\*\/]([\da-zA-Z]{2})$/ or
@@ -1176,9 +1181,9 @@ sub collapse {
 				$i = -1;
 
 			} elsif ($latexChar1 eq '^') {
-				if ($innerAbstract eq '') {
-					$innerAbstract = (&isLiteral($latexChar3, $debug) and &isLiteral($latexExpr->[$i-1], $debug)) ? 'LITERAL' : 'SYMBOLIC';
-				}
+#				if ($innerAbstract eq '') {
+				$innerAbstract = &Abstraction::compare_inner_abstraction((&isLiteral($latexChar3, $debug) and &isLiteral((split(/[\/\*\+\-\^\_]/, $latexExpr->[$i-1]))[-1], $debug)) ? 'LITERAL' : 'SYMBOLIC', $innerAbstract, $debug);
+#				}
 
 				if ($latexExpr->[$i-1] =~ /($trig_terms)/) {
 					$outerAbstract = 'EXPRESSION:TRIGONOMETRY';

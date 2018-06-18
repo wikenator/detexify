@@ -679,11 +679,12 @@ sub condense {
 sub isLiteral {
 	my $expr = shift;
 	my $debug = shift;
-	my $is_number = '-?(\d{1,3}\,?)+(\\.\\d+)?';
+	my $is_number = '-?(\d{1,3}\,?)+(\.\d+)?';
 
 	if ($expr =~ /^[\(\{]?$is_number[\)\}]?(\\?%)?$/ or
-	$expr =~ /^-?\(?\d*\.?\d+\)?\/\(?\d*\.?\d+\)?(\\?%)?$/ or
-	$expr =~ /^\(?-?\d+\)?\^\(?($is_number|\d+\/\d+|\d+)\)?$/) {
+	$expr =~ /^-?\(?-?\d*\.?\d+\)?\/\(?\d*\.?\d+\)?(\\?%)?$/ or
+	$expr =~ /^\(?-?\d+\)?\^\(?($is_number|\d+\/\d+|\d+)\)?$/ or
+	$expr =~ /^\(?$is_number\)?$/) {
 		return 1;
 	}
 
