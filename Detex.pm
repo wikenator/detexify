@@ -407,9 +407,12 @@ sub detex {
 					if ($debug) { print STDERR "DETEX coord: $coord\n"; }
 
 					$firstPass = 1;
-					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$coord], &isLiteral($coord, $debug) ? 'LITERAL' : 'SYMBOLIC', $outerAbstract))[1], $innerAbstract, $debug);
 
-					if ($innerAbstract eq 'SYMBOLIC') { last; }
+					if ($innerAbstract ne 'SYMBOLIC') {
+						$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$coord], &isLiteral($coord, $debug) ? 'LITERAL' : 'SYMBOLIC', $outerAbstract))[1], $innerAbstract, $debug);
+					} else { last; }
+
+#					if ($innerAbstract eq 'SYMBOLIC') { last; }
 				}
 			}
 
@@ -445,8 +448,6 @@ sub detex {
 			my $i = 0;
 
 			foreach my $coord (@coords) {
-				if ($debug) { print STDERR "DETEX coord: $coord\n"; }
-
 				if ($i == 0) {
 					$coord = substr $coord, 1;
 					$i += 1;
@@ -458,13 +459,15 @@ sub detex {
 					$i += 1;
 				}
 
+				if ($debug) { print STDERR "DETEX coord: $coord\n"; }
+
 				$firstPass = 1;
 
-				if ($innerAbstract eq '') {
+				if ($innerAbstract ne 'SYMBOLIC') {
 					$innerAbstract = &Abstraction::compare_inner_abstraction((&detexify([$coord], &isLiteral($coord, $debug) ? 'LITERAL' : 'SYMBOLIC', $outerAbstract))[1], $innerAbstract, $debug);
-				}
+				} else { last; }
 
-				if ($innerAbstract eq 'SYMBOLIC') { last; }
+#				if ($innerAbstract eq 'SYMBOLIC') { last; }
 			}
 		}
 
@@ -522,8 +525,8 @@ sub detex {
 				my $temp2 = $2;
 				$outerAbstract = 'EXPRESSION';
 
-				if ($temp1 =~ /^\w$/ or
-				$temp2 =~ /^\w$/) {
+				if ($temp1 =~ /^[a-zA-Z]$/ or
+				$temp2 =~ /^[a-zA-Z]$/) {
 					$innerAbstract = 'SYMBOLIC';
 
 				} else {
@@ -566,7 +569,8 @@ sub detex {
 				if ($temp2 =~ /^!$/) { $outerAbstract = 'FACTORIAL'; }
 				else { $outerAbstract = 'EXPRESSION'; }
 
-			} elsif ($latexExpr =~ /^\d[a-zA-Z]$/) {
+			} elsif ($latexExpr =~ /^\d[a-zA-Z]$/ or
+			$latexExpr =~ /^[a-zA-Z]{2}$/) {
 				$outerAbstract = 'EXPRESSION';
 				$innerAbstract = 'SYMBOLIC';
 			}
@@ -1235,7 +1239,23 @@ sub collapse {
 			($latexChar1 !~ /^($search_items)$/)) {
 				# create '#()' fragment
 				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . "{" . $latexChar3 . "}"], $innerAbstract, $outerAbstract);
-	
+
+				# determine if expression is a set
+				if ($fragment =~ /^\\?\{(.*?)\\?\}$/) {
+					my $temp1 = $1;
+					$outerAbstract = 'SET';
+
+					if ($innerAbstract eq '') {
+						if ($temp1 =~ /[a-zA-Z]/ or
+						$temp1 eq '') {
+							$innerAbstract = 'SYMBOLIC';
+
+						} else {
+							$innerAbstract = 'LITERAL';
+						}
+					}
+				}
+
 				if ($debug) { print STDERR "COLLAPSE #() frag: $fragment\n"; }
 
 				splice @$latexExpr, $i, 4, $fragment;
