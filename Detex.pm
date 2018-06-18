@@ -126,31 +126,6 @@ sub detex {
 
 	$latexExpr =~ s/(\-)?\\infty/$1inf/g;	# replace \infty with inf
 
-	if ($latexExpr =~ /^(\.|[^\d])\.\d+(\\?%)?/) {
-		$innerAbstract = 'LITERAL';
-		$outerAbstract = 'DECIMAL';
-
-	} elsif ($latexExpr =~ /^\.[a-zA-Z]+/) {
-		$innerAbstract = 'SYMBOLIC';
-		$outerAbstract = 'DECIMAL';
-
-	} elsif ($latexExpr =~ /^-?([^\.\(\)\{\}\+\-\*\/]*?)\.([^\.\(\)\{\}\+\-\*\/]+?)(\\?%)?$/) {
-		my $temp1 = $1;
-		my $temp2 = $2;
-
-		if (($temp1 =~ /^[\d,]*$/) and ($temp2 =~ /^\d+$/)) {
-			$innerAbstract = 'LITERAL';
-			$outerAbstract = 'DECIMAL';
-
-		} else {
-			$innerAbstract = 'SYMBOLIC';
-			$outerAbstract = 'DECIMAL';
-		}
-	}
-
-	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g;# replace .# with 0.#
-	$latexExpr =~ s/^\.(.*?)$/0.$1/g;	# replace leading .# with 0.#
-
 	if ($latexExpr =~ /^([^\^]+)^([^\^]+)$/) {
 		my $tmp1 = $1;
 		my $tmp2 = $2;
@@ -163,31 +138,6 @@ sub detex {
 		}
 
 		$outerAbstract .= 'EXPRESSION:EXPONENTIAL';
-	}
-
-	if ($latexExpr =~ /%$/) {
-		if ($debug) { print STDERR "DETEX percentage found\n"; }
-
-#		if ($latexExpr =~ /^$is_number\\?%$/) {
-		if ($innerAbstract ne 'LITERAL' and
-		&isLiteral($latexExpr, $debug)) {
-			if (not defined $outerAbstract or
-			($outerAbstract eq '')) {
-				$outerAbstract = 'PERCENT';
-
-			} else {
-				$outerAbstract .= ':PERCENT';
-			}
-
-		} else {
-			if (not defined $outerAbstract or
-			($outerAbstract eq '')) {
-				$outerAbstract = 'PERCENT';
-
-			} else {
-				$outerAbstract .= ':PERCENT';
-			}
-		}
 	}
 
 	$latexExpr =~ s/\^\(([\d\w\*]+)\)/^{$1}/g;	# a^b -> a^(b)
@@ -241,8 +191,56 @@ sub detex {
 		$dbl_check--;
 	}
 
+	if ($latexExpr =~ /^(\.|[^\d])\.\d+(\\?%)?/) {
+		$innerAbstract = 'LITERAL';
+		$outerAbstract = 'DECIMAL';
+
+	} elsif ($latexExpr =~ /^\.[a-zA-Z]+/) {
+		$innerAbstract = 'SYMBOLIC';
+		$outerAbstract = 'DECIMAL';
+
+	} elsif ($latexExpr =~ /^-?([^\.\(\)\{\}\+\-\*\/]*?)\.([^\.\(\)\{\}\+\-\*\/]+?)(\\?%)?$/) {
+		my $temp1 = $1;
+		my $temp2 = $2;
+
+		if (($temp1 =~ /^[\d,]*$/) and ($temp2 =~ /^\d+$/)) {
+			$innerAbstract = 'LITERAL';
+			$outerAbstract = 'DECIMAL';
+
+		} else {
+			$innerAbstract = 'SYMBOLIC';
+			$outerAbstract = 'DECIMAL';
+		}
+	}
+
+	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g;	# replace .# with 0.#
+	$latexExpr =~ s/^\.(.*?)$/0.$1/g;	# replace leading .# with 0.#
+
+	if ($latexExpr =~ /%$/) {
+		if ($debug) { print STDERR "DETEX percentage found\n"; }
+
+		if ($innerAbstract ne 'LITERAL' and
+		&isLiteral($latexExpr, $debug)) {
+			if (not defined $outerAbstract or
+			($outerAbstract eq '')) {
+				$outerAbstract = 'PERCENT';
+
+			} else {
+				$outerAbstract .= ':PERCENT';
+			}
+
+		} else {
+			if (not defined $outerAbstract or
+			($outerAbstract eq '')) {
+				$outerAbstract = 'PERCENT';
+
+			} else {
+				$outerAbstract .= ':PERCENT';
+			}
+		}
+	}
+
 	if ($latexExpr =~ /^(.+?)\^\{\\circ\}$/) {
-#		if ($1 =~ /^$is_number$/) {
 		if ($innerAbstract ne 'LITERAL' and
 		&isLiteral($1, $debug)) {
 			$innerAbstract = 'LITERAL';
