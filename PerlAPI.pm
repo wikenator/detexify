@@ -28,9 +28,9 @@ our @latexFunc;
 our @trigTag;
 {
 	no warnings 'qw';
-	@latexTag = qw(\\overline \\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty \\gcd inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
+	@latexTag = qw(\\overline \\frac \\sqrt \\sinh \\cosh \\tanh \\csch \\coth \\sech \\sin \\cos \\tan \\csc \\cot \\sec \\pi \\log \\ln \\angle \\infty \\gcd \\pmod \\mod \\bmod inf sqrt pi log ln abs #sin #cos #tan #sec #csc #cot #sinh #cosh #tanh #csch #sech #coth #ln #log #angle);
 	@latexConstants = qw(\\theta \\pi \\varphi \\phi \\rho \\sigma \\gamma \\Gamma \\beta \\alpha \\epsilon \\beth \\aleph \\omega \\delta \\chi chi delta omega aleph beth epsilon alpha beta theta pi varphi phi rho sigma gamma Gamma #pi);
-	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot gcd not overline vector #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
+	@latexFunc = qw(sqrt sinh cosh tanh csch coth sech asin acos atan acsc asec acot log ln abs sin cos tan csc sec cot gcd not overline vector pmod mod bmod #sin #cos #tan #csc #sec #cot #csch #sech #coth #sinh #cosh #tanh #ln #log);
 	@trigTag = qw(\\sin \\cos \\tan \\csc \\sec \\cot \\sinh \\cosh \\tanh \\csch \\coth \\sech arcsin arccos arctan arccsc arcsec arccot asin acos atan acsc asec acot #sin #cos #tan #csc #sec #cot #sinh #cosh #tanh #csch #sech #coth #asin #acos #atan #acsc #asec #acot);
 }
 our $search_items = join('|', @latexSplit);
@@ -327,13 +327,28 @@ sub injectAsterixes {
 	$expr =~ s/epsilon\*$/epsilon/g;
 	$expr =~ s/($constant_terms)\*?\(/$1(/g;
 
+	## TEMP split into 4 sections, werx for now
 	# fix split for log/ln
-	if ($expr =~ /#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*(\(?.+\)?)/) {
+	if ($expr =~ /#l\*([on])\*?(g?)(^\(?.+?\)?)\*(\(.+?\))/) {
+		$expr =~ s/#l\*([on])\*?(g?)(^\(?.+?\)?)\*(\(.+?\))/l$1$2$3$4/g;
+
+	} elsif ($expr =~ /#l\*([on])\*?(g?)(_\(?.+?\)?)\*(\(.+\))/) {
+		$expr =~ s/#l\*([on])\*?(g?)(_\(?.+?\)?)\*(\(.+\))/l$1$2$3$4/g;
+
+	} elsif ($expr =~ /#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*(\(?.+\)?)/) {
 		my $temp5 = $5;
 
 		if ($temp5 !~ /^\(.+?\)$/) { $temp5 = "($temp5)"; }
 
 		$expr =~ s/#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*\(?.+\)?/l$1$2$3$4$temp5/g;
+
+	} elsif ($expr =~ /#l\*([on])\*?(g?)(\(.+?\))/ or
+	$expr =~ /#l\*([on])\*?(g?)([^\+\-\*\/]+?)/) {
+		my $temp3 = $3;
+
+		if ($temp3 !~ /^\(.+?\)$/) { $temp3 = "($temp3)"; }
+
+		$expr =~ s/#l\*([on])\*?(g?)(\(?.+?\)?)/l$1$2$temp3/g;
 	}
 
 	if ($debug) { print STDERR "\tAPI:INJECTAST ln/log fix\n"; }
@@ -359,6 +374,8 @@ sub injectAsterixes {
 	$expr =~ s/a\*n\*g\*l\*e\*?/angle /g;
 	# fix split for gcd
 	$expr =~ s/g\*c\*d\*?\(/gcd(/g;
+	# fix split for mod
+	$expr =~ s/m\*o\*d\*?\(/mod(/g;
 	# fix split for overline
 	$expr =~ s/o\*v\*e\*r\*l\*i\*n\*e\*?\(/not(/g;
 	# fix split for operatorname
@@ -384,7 +401,7 @@ sub injectAsterixes {
 	if ($debug) { print STDERR "\tAPI:INJECTAST after ab->a*b: $expr\n"; }
 
 	# remove ending periods
-	$expr =~ s/\.$/""/g;
+	$expr =~ s/([^\.\.])\.$/$1/g;
 
 	# clean unnecessary parentheses from expression
 	$expr = &cleanParens($expr, $debug);

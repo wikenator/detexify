@@ -478,7 +478,7 @@ sub detex {
 				$innerAbstract = 'LITERAL';
 				$outerAbstract = 'EXPRESSION';
 
-			} elsif ($subExpr->[0] =~ /^[a-zA-Z\+\-\*\/\(\)]$/) {
+			} elsif ($subExpr->[0] =~ /^[\da-zA-Z\+\-\*\/\(\)]+$/) {
 				$innerAbstract = 'SYMBOLIC';
 				$outerAbstract = 'EXPRESSION';
 			}
@@ -523,8 +523,8 @@ sub detex {
 				my $temp2 = $2;
 				$outerAbstract = 'EXPRESSION';
 
-				if ($temp1 =~ /^[a-zA-Z]$/ or
-				$temp2 =~ /^[a-zA-Z]$/) {
+				if ($temp1 =~ /^[a-zA-Z]+$/ or
+				$temp2 =~ /^[a-zA-Z]+$/) {
 					$innerAbstract = 'SYMBOLIC';
 
 				} else {
@@ -551,6 +551,20 @@ sub detex {
 
 				if ($temp2 =~ /^!$/) { $outerAbstract .= 'FACTORIAL'; }
 				else { $outerAbstract = 'EXPRESSION'; }
+
+			} elsif ($latexExpr =~ /^([\da-zA-Z])([\da-zA-Z])([\da-zA-Z])$/) {
+				my $temp1 = $1;
+				my $temp2 = $2;
+				my $temp3 = $3;
+
+				if ($temp1 =~ /[a-zA-Z]/ or
+				$temp2 =~ /[a-zA-Z]/ or
+				$temp3 =~ /[a-zA-Z]/) {
+					$innerAbstract = 'SYMBOLIC';
+
+				} else {
+					$innerAbstract = 'LITERAL';
+				}
 			}
 
 		} elsif (length($latexExpr) == 2) {
@@ -1240,6 +1254,8 @@ sub collapse {
 
 			} elsif (($latexChar1 !~ /^($search_terms)$/) and
 			($latexChar1 !~ /^($search_items)$/)) {
+				if ($debug) { print STDERR "COLLAPSE not search terms or search items\n"; }
+
 				# create '#()' fragment
 				($fragment, $innerAbstract, $outerAbstract) = &detexify([$latexChar1 . "{" . $latexChar3 . "}"], $innerAbstract, $outerAbstract);
 
@@ -1440,7 +1456,10 @@ sub collapse {
 		} elsif (($latexChar1 eq '[') and
 		($latexChar3 eq ']')) {
 			$fragment = "[$latexChar2]";
-			$outerAbstract = 'INTERVAL';
+
+			if ($latexChar2 =~ /,/) {
+				$outerAbstract = 'INTERVAL';
+			}
 
 			if ($debug) { print STDERR "COLLAPSE []: $fragment\n"; }
 
@@ -1468,6 +1487,16 @@ sub collapse {
 			if ($debug) { print STDERR "COLLAPSE inner arg: $inner_arg\n"; }
 
 			splice @$latexExpr, $i+2, $k-$i-2, $inner_arg;
+
+		} elsif ($latexChar1 =~ /\\[bp]mod/) {
+			if ($debug) { print STDERR "preparing modulus\n"; }
+
+			$innerAbstract = &Abstraction::compare_inner_abstraction(&isLiteral($latexExpr->[$i-1], $debug) ? 'LITERAL' : 'SYMBOLIC', &isLiteral($latexChar2, $debug) ? 'LITERAL' : 'SYMBOLIC', $debug);
+			$outerAbstract = 'EXPRESSION:MODULAR';
+			$fragment = "mod($latexExpr->[$i-1]," . substr($latexChar2, 1, -1) . ")";
+
+			splice @$latexExpr, $i-1, 3, $fragment;
+			$i = -1;
 
 		} elsif (not(($latexChar1 =~ /^($search_items)$/) or
 		($latexChar2 =~ /^($search_terms)$/) or
