@@ -329,29 +329,66 @@ sub injectAsterixes {
 
 	## TEMP split into 4 sections, werx for now
 	# fix split for log/ln
-	if ($expr =~ /#l\*([on])\*?(g?)(^\(?.+?\)?)\*(\(.+?\))/) {
-		$expr =~ s/#l\*([on])\*?(g?)(^\(?.+?\)?)\*(\(.+?\))/l$1$2$3$4/g;
+	if ($expr =~ /#l\*o\*g\*?(^\(?.+?\)?)\*(\(.+?\))/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST log 1\n"; }
 
-	} elsif ($expr =~ /#l\*([on])\*?(g?)(_\(?.+?\)?)\*(\(.+\))/) {
-		$expr =~ s/#l\*([on])\*?(g?)(_\(?.+?\)?)\*(\(.+\))/l$1$2$3$4/g;
+		$expr =~ s/#l\*o\*g\*?(^\(?.+?\)?)\*(\(.+?\))/log$1$2/g;
 
-	} elsif ($expr =~ /#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*(\(?.+\)?)/) {
-		my $temp5 = $5;
+	} elsif ($expr =~ /#l\*n\*?(^\(?.+?\)?)\*(\(.+?\))/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST ln 1\n"; }
 
-		if ($temp5 !~ /^\(.+?\)$/) { $temp5 = "($temp5)"; }
+		$expr =~ s/#l\*n\*?(^\(?.+?\)?)\*(\(.+?\))/ln$1$2/g;
 
-		$expr =~ s/#l\*([on])\*?(g?)([_\^]\(?.+?\)?)?([_\^]\(?.+?\)?)?\*\(?.+\)?/l$1$2$3$4$temp5/g;
+	} elsif ($expr =~ /#l\*o\*g\*?(_\(?.+?\)?)\*(\(.+\))/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST log 2\n"; }
 
-	} elsif ($expr =~ /#l\*([on])\*?(g?)(\(.+?\))/ or
-	$expr =~ /#l\*([on])\*?(g?)([^\+\-\*\/]+?)/) {
+		$expr =~ s/#l\*o\*g\*?(_\(?.+?\)?)\*(\(.+\))/log$1$2/g;
+
+	} elsif ($expr =~ /#l\*n\*?(_\(?.+?\)?)\*(\(.+\))/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST ln 2\n"; }
+
+		$expr =~ s/#l\*n\*?(_\(?.+?\)?)\*(\(.+\))/ln$1$2/g;
+
+	} elsif ($expr =~ /#l\*o\*g\*?([_\^]\(?.+?\)?)([_\^]\(?.+?\)?)\*(\(?.+\)?)/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST log 3\n"; }
+
 		my $temp3 = $3;
 
-		if ($temp3 !~ /^\(.+?\)$/) { $temp3 = "($temp3)"; }
+		if ($temp3 !~ /^\(.+\)$/) { $temp3 = "($temp3)"; }
 
-		$expr =~ s/#l\*([on])\*?(g?)(\(?.+?\)?)/l$1$2$temp3/g;
+		$expr =~ s/#l\*o\*g\*?([_\^]\(?.+?\)?)([_\^]\(?.+?\)?)\*\(?.+\)?/log$1$2$temp3/g;
+
+	} elsif ($expr =~ /#l\*n\*?([_\^]\(?.+?\)?)([_\^]\(?.+?\)?)\*(\(?.+\)?)/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST ln 3\n"; }
+
+		my $temp3 = $3;
+
+		if ($temp3 !~ /^\(.+\)$/) { $temp3 = "($temp3)"; }
+
+		$expr =~ s/#l\*n\*?([_\^]\(?.+?\)?)([_\^]\(?.+?\)?)\*\(?.+\)?/ln$1$2$temp3/g;
+
+	} elsif ($expr =~ /#l\*o\*g\*?(\(.+\))/ or
+	$expr =~ /#l\*o\*g\*?([^\+\-\*\/]+)/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST log 4\n"; }
+
+		my $temp1 = $1;
+
+		if ($temp1 !~ /^\(.+\)$/) { $temp1 = "($temp1)"; }
+
+		$expr =~ s/#l\*o\*g\*?(\(?.+\)?)/log$temp1/g;
+
+	} elsif ($expr =~ /#l\*n\*?(\(.+\))/ or
+	$expr =~ /#l\*n\*?([^\+\-\*\/]+)/) {
+		if ($debug) { print STDERR "\tAPI:INJECTAST ln 4\n"; }
+
+		my $temp1 = $1;
+
+		if ($temp1 !~ /^\(.+\)$/) { $temp1 = "($temp1)"; }
+
+		$expr =~ s/#l\*n\*?(\(?.+\)?)/ln$temp1/g;
 	}
 
-	if ($debug) { print STDERR "\tAPI:INJECTAST ln/log fix\n"; }
+	if ($debug) { print STDERR "\tAPI:INJECTAST ln/log fix: $expr\n"; }
 
 	# fix split for ln
 #       $detexExpr =~ s/#l\*n\*?(\()/ln$1/g; 
@@ -401,7 +438,7 @@ sub injectAsterixes {
 	if ($debug) { print STDERR "\tAPI:INJECTAST after ab->a*b: $expr\n"; }
 
 	# remove ending periods
-	$expr =~ s/([^\.\.])\.$/$1/g;
+	$expr =~ s/([^\.][^\.])\.$/$1/g;
 
 	# clean unnecessary parentheses from expression
 	$expr = &cleanParens($expr, $debug);
@@ -724,6 +761,8 @@ sub isExpression {
 	if ($debug) { print STDERR "\tAPI:ISEXPR determining if expression: $expr\n"; }
 
 	if ($expr =~ /[+\*]/) {
+		if ($debug) { print STDERR "\tAPI:ISEXPR is expression\n"; }
+
 		return 1;
 
 	} elsif ($expr =~ /[\w\d]-[\w\d]/ or

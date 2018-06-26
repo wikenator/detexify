@@ -213,8 +213,8 @@ sub detex {
 		}
 	}
 
-	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g;	# replace .# with 0.#
-	$latexExpr =~ s/^\.(.*?)$/0.$1/g;	# replace leading .# with 0.#
+	$latexExpr =~ s/([^\d])(\.\d+)/${1}0$2/g; # replace .# with 0.#
+	$latexExpr =~ s/^\.([^\.][^\.])/0.$1/g; # replace leading .# with 0.#
 
 	if ($latexExpr =~ /%$/) {
 		if ($debug) { print STDERR "DETEX percentage found\n"; }
@@ -474,13 +474,17 @@ sub detex {
 		(scalar @$subExpr) == 1) {
 			if ($debug) { print STDERR "DETEX nothing classified yet\n"; }
 
-			if ($subExpr->[0] =~ /^[\d\.\+\-\*\/\(\)]+$/) {
+			if ($subExpr->[0] =~ /^[\d\.\+\-\*\/\(\)i]+$/) {
 				$innerAbstract = 'LITERAL';
 				$outerAbstract = 'EXPRESSION';
 
 			} elsif ($subExpr->[0] =~ /^[\da-zA-Z\+\-\*\/\(\)]+$/) {
 				$innerAbstract = 'SYMBOLIC';
 				$outerAbstract = 'EXPRESSION';
+			}
+
+			if ($subExpr->[0] =~ /^[^islcp]*i[^inmr]*$/) {
+				$outerAbstract .= ':COMPLEX';
 			}
 		}
 
@@ -523,15 +527,21 @@ sub detex {
 				my $temp2 = $2;
 				$outerAbstract = 'EXPRESSION';
 
-				if ($temp1 =~ /^[a-zA-Z]+$/ or
-				$temp2 =~ /^[a-zA-Z]+$/) {
+				if ($latexExpr =~ /^[^islcp]*i[^inmr]*$/) {
+					$outerAbstract .= ':COMPLEX';
+				}
+
+				if (($temp1 =~ /^[a-zA-Z]+$/ or
+				$temp2 =~ /^[a-zA-Z]+$/) and
+				not($temp1 =~ /^[^islcp]*i[^inmr]*$/ or
+				$temp2 =~ /^[^islcp]*i[^inmr]*$/)) {
 					$innerAbstract = 'SYMBOLIC';
 
 				} else {
 					$innerAbstract = 'LITERAL';
 
 					# override EXPRESSION abstraction
-					if ($latexExpr =~ /^.+?\/.+?$/) {
+					if ($latexExpr =~ /^.+\/.+$/) {
 						$outerAbstract = 'FRACTION';
 					}
 				}
@@ -602,6 +612,20 @@ sub detex {
 
 	if (&isExpression($detexExpr, $outerAbstract, $debug)) {
 		$outerAbstract = &Abstraction::compare_outer_abstraction('EXPRESSION', $outerAbstract, $debug);
+
+		if ($innerAbstract eq '') {
+			if ($detexExpr =~ /^[\d\.\+\-\*\/\(\)i]+$/) {
+				$innerAbstract = 'LITERAL';
+
+			} elsif ($detexExpr =~ /^[\da-zA-Z\+\-\*\/\(\)]+$/) {
+				$innerAbstract = 'SYMBOLIC';
+			}
+		}
+
+		if ($outerAbstract eq 'EXPRESSION' and
+		$detexExpr =~ /^[^islcp]*i[^inmr]*$/) {
+			$outerAbstract .= ':COMPLEX';
+		}
 	}
 
 	if ($detexExpr =~ /^($constant_terms|gcd|lcm|[a-zA-Z])\([^,]+?(,[^,]+?)?\)$/) {
@@ -716,7 +740,7 @@ sub detexify {
 			}
 
 			$firstPass = 1;
-			($numer, $innerAbstract, $outerAbstract) = &detexify([$subString], $innerAbstract, $outerAbstract);
+			($numer, $innerAbstract, $outerAbstract) = &detexify(&latexplosion($subString), $innerAbstract, $outerAbstract);
 			
 #			$innerAbstract = ($numer =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 
@@ -739,7 +763,7 @@ sub detexify {
 			}
 
 			$firstPass = 1;
-			($denom, $innerAbstract, $outerAbstract) = &detexify([$subString], $innerAbstract, $outerAbstract);
+			($denom, $innerAbstract, $outerAbstract) = &detexify(&latexplosion($subString), $innerAbstract, $outerAbstract);
 
 #			$innerAbstract = ($denom =~ /^$is_number$/) ? 'LITERAL' : 'SYMBOLIC';
 
@@ -1211,7 +1235,7 @@ sub collapse {
 					$fragment = $latexChar1 . $latexChar3;
 
 				} else {
-					$fragment = $latexChar1 . $latexChar2 . $latexChar3 . $latexChar4;
+					$fragment = $latexChar1 . ($latexChar2 eq '{' ? '(' : $latexChar2) . $latexChar3 . ($latexChar4 eq '}' ? ')' : $latexChar4);
 				}
 
 				$fragment =~ s/^\\+(.*)$/$1/;
@@ -1314,7 +1338,8 @@ sub collapse {
 				}
 			}
 
-			($inner_arg, $innerAbstract, $outerAbstract) = &detexify([$inner_arg], $innerAbstract, $outerAbstract);
+			$firstPass = 1;
+			($inner_arg, $innerAbstract, $outerAbstract) = &detexify(&latexplosion($inner_arg), $innerAbstract, $outerAbstract);
 
 			if ($debug) { print STDERR "COLLAPSE inner arg: $inner_arg\n"; }
 
