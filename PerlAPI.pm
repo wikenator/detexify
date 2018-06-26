@@ -735,6 +735,8 @@ sub isLiteral {
 	my $debug = shift;
 	my $is_number = '-?(\d{1,3}\,?)+(\.\d+)?';
 
+	if ($debug) { print STDERR "\tAPI:ISLITERAL checking if literal: $expr\n"; }
+
 	if ($expr =~ /^[\(\{]?$is_number[\)\}]?(\\?%)?$/ or
 	$expr =~ /^-?\(?-?\d*\.?\d+\)?\/\(?\d*\.?\d+\)?(\\?%)?$/ or
 	$expr =~ /^\(?-?\d+\)?\^\(?($is_number|\d+\/\d+|\d+)\)?$/ or

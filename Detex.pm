@@ -240,19 +240,71 @@ sub detex {
 		}
 	}
 
-	if ($latexExpr =~ /^(.+?)\^\{\\circ\}$/) {
+	# check if expression is a constant term
+	if ($latexExpr =~ /^-?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
+		$innerAbstract = 'SYMBOLIC';
+		$outerAbstract = 'CONSTANT';
+	}
+
+	if ($latexExpr =~ /^(.+)\^\{\\circ\}((.+?)')?((.+)'')?$/) {
+		my $temp1 = $1;
+		my $temp2 = $3;
+		my $temp3 = $5;
+		$outerAbstract = 'DEGREE';
+
 		if ($innerAbstract ne 'LITERAL' and
-		&isLiteral($1, $debug)) {
+		&isLiteral($temp1, $debug)) {
+			if ($debug) { print STDERR "DETEX literal degree: $temp1\n"; }
+
 			$innerAbstract = 'LITERAL';
-			$outerAbstract = 'DEGREE';
+
+			if (defined $temp2 and
+			&isLiteral($temp2, $debug)) {
+				$temp2 /= 60;
+				$temp1 += $temp2;
+				$outerAbstract = 'DEGREE:DMS';
+
+				if ($debug) { print STDERR "DETEX literal degree: $temp2\n"; }
+
+				if (defined $temp3 and
+				&isLiteral($temp3, $debug)) {
+					$temp3 /= 3600;
+					$temp1 += $temp3;
+					$latexExpr = "$temp1^{\\circ}";
+
+				} elsif (defined $temp3) {
+					$innerAbstract = 'SYMBOLIC';
+					$latexExpr = "$temp1^{\\circ}$temp3''";
+
+				} else {
+					$latexExpr = "$temp1^{\\circ}";
+				}
+
+			} elsif (defined $temp2) {
+				$innerAbstract = 'SYMBOLIC';
+			}
 
 		} else {
 			$innerAbstract = 'SYMBOLIC';
-			$outerAbstract = 'DEGREE';
+
+			if (defined $temp2 and
+			&isLiteral($temp2, $debug)) {
+				$temp2 /= 60;
+				$outerAbstract = 'DEGREE:DMS';
+
+				if (defined $temp3 and
+				&isLiteral($temp3, $debug)) {
+					$temp3 /= 3600;
+					$temp2 += $temp3;
+					$latexExpr = "$temp1.$temp2^{\\circ}";
+				}
+			}
 
 			# continue finding DEGREE or ANGLE abstractions here
 		}
 	}
+
+	if ($debug) { print STDERR "DETEX after degree check IA: $innerAbstract, OA: $outerAbstract\n"; }
 
 	if ($latexExpr =~ /angle/) {
 		$innerAbstract = 'SYMBOLIC';
@@ -271,16 +323,12 @@ sub detex {
 #	$latexExpr =~ s/\(/{/g;			# replace ( with {
 #	$latexExpr =~ s/\)/}/g;			# replace ) with }
 
+	## TEMP need nested handling of abs
 	if ($latexExpr =~ /^\|(.*?)\|$/) {
 		$outerAbstract = 'EXPRESSION:ABSOLUTEVALUE';
 	}
 
 	$latexExpr =~ s/\|(.*?)\|/abs($1)/g;	# replace | with abs tag
-
-	if ($latexExpr =~ /^-?($constant_terms|[a-zA-Z])(_\{?.\}?)?$/) {
-		$innerAbstract = 'SYMBOLIC';
-		$outerAbstract = 'CONSTANT';
-	}
 
 	$latexExpr =~ s/\\?pi/#pi/g;		# escape pi tag
 	$latexExpr =~ s/\\?theta/#theta/g;
